@@ -9,99 +9,87 @@
 <title>VoiceBridge — Live Voice Translator</title>
 <style>
   :root{
-    --ink:#1e1b3a; --muted:#6b7280; --line:#eceafd; --card:#ffffff;
+    --ink:#1e1b3a; --muted:#6b7280; --line:#eceafd;
     --a:#4f46e5; --a2:#6366f1; --aBg:#eef2ff; --aInk:#312e81;
-    --b:#0d9488; --b2:#14b8a6; --bBg:#ecfdf7; --bInk:#0f5e54;
+    --b:#0d9488; --b2:#14b8a6; --bBg:#e7fbf4; --bInk:#0f5e54;
     --radius:20px; --danger:#ef4444;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:linear-gradient(160deg,#6d28d9 0%,#4f46e5 55%,#db2777 130%);
-    color:var(--ink); display:flex; align-items:center; justify-content:center;
-    min-height:100dvh; overscroll-behavior:none;
+    background:linear-gradient(155deg,#7c3aed 0%,#4f46e5 45%,#0ea5e9 100%);
+    color:var(--ink);display:flex;align-items:center;justify-content:center;min-height:100dvh;overscroll-behavior:none;
   }
-  .app{width:100%; max-width:480px; background:#faf9ff; overflow:hidden;
-    display:flex; flex-direction:column; position:relative; height:100dvh; border-radius:0;}
+  .app{width:100%;max-width:480px;background:#f7f6ff;overflow:hidden;display:flex;flex-direction:column;position:relative;height:100dvh;border-radius:0}
   @media (min-width:600px){ body{padding:16px}
-    .app{height:auto; max-height:calc(100dvh - 32px); border-radius:28px; box-shadow:0 30px 70px rgba(76,29,149,.5)} }
+    .app{height:auto;max-height:calc(100dvh - 32px);border-radius:30px;box-shadow:0 30px 70px rgba(76,29,149,.55)} }
 
-  header{background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff;
-    padding:calc(16px + env(safe-area-inset-top)) 18px 16px;}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:21px;letter-spacing:.2px}
-  .brand .dot{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.2);
-    display:grid;place-items:center;font-size:20px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-  .tag{margin:4px 0 0 48px;font-size:12.5px;opacity:.92}
+  header{background:linear-gradient(135deg,#8b5cf6,#4f46e5);color:#fff;padding:calc(16px + env(safe-area-inset-top)) 18px 16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:.2px}
+  .brand .dot{width:40px;height:40px;border-radius:13px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:21px;box-shadow:0 5px 14px rgba(0,0,0,.18)}
+  .tag{margin:5px 0 0 50px;font-size:12.5px;opacity:.93}
 
-  .tabs{display:flex;gap:6px;margin-top:14px;background:rgba(255,255,255,.16);padding:4px;border-radius:14px}
-  .tab{flex:1;border:none;background:transparent;color:#fff;font-weight:700;font-size:14px;
-    padding:9px;border-radius:11px;cursor:pointer;opacity:.85;transition:.15s}
-  .tab.active{background:#fff;color:var(--a);opacity:1;box-shadow:0 3px 10px rgba(0,0,0,.12)}
+  .tabs{display:flex;gap:6px;margin-top:14px;background:rgba(255,255,255,.18);padding:4px;border-radius:15px}
+  .tab{flex:1;border:none;background:transparent;color:#fff;font-weight:800;font-size:14px;padding:10px;border-radius:12px;cursor:pointer;opacity:.85;transition:.15s}
+  .tab.active{background:#fff;color:var(--a);opacity:1;box-shadow:0 4px 12px rgba(0,0,0,.14)}
 
-  .langbar{display:flex;align-items:flex-end;gap:9px;margin-top:12px}
-  .field{flex:1;min-width:0}
-  .field label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;
-    opacity:.9;margin-bottom:5px;font-weight:700}
+  .langbar{display:flex;align-items:flex-end;gap:9px;margin-top:13px}
+  .field{flex:1;min-width:0;border-radius:15px;padding:2px;transition:.2s}
+  .field.pa.turn{background:rgba(255,255,255,.35);box-shadow:0 0 0 3px rgba(199,210,254,.7)}
+  .field.pb.turn{background:rgba(255,255,255,.35);box-shadow:0 0 0 3px rgba(153,246,228,.7)}
+  .field label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;opacity:.95;margin:2px 0 5px 4px;font-weight:800}
   .field.pa label{color:#c7d2fe} .field.pb label{color:#99f6e4}
-  select{width:100%;appearance:none;-webkit-appearance:none;border:none;border-radius:13px;
-    padding:13px 12px;font-size:15px;background:#fff;color:var(--ink);font-weight:700;cursor:pointer;
-    box-shadow:0 3px 10px rgba(0,0,0,.12)}
-  .swap{flex:0 0 auto;width:46px;height:46px;border-radius:13px;border:none;cursor:pointer;
-    background:rgba(255,255,255,.24);color:#fff;font-size:20px;transition:transform .25s;font-weight:700}
+  select{width:100%;appearance:none;-webkit-appearance:none;border:none;border-radius:13px;padding:13px 12px;font-size:15px;background:#fff;color:var(--ink);font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.12)}
+  .swap{flex:0 0 auto;width:46px;height:46px;border-radius:14px;border:none;cursor:pointer;background:rgba(255,255,255,.26);color:#fff;font-size:21px;transition:transform .25s;font-weight:800}
   .swap:active{transform:rotate(180deg) scale(.9)}
 
-  main{padding:14px 14px 6px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;
-    background:radial-gradient(circle at 15% 0%, #f3f0ff, #faf9ff 60%)}
-  .empty{text-align:center;color:var(--muted);padding:34px 18px}
-  .empty .big{font-size:42px;margin-bottom:8px}
-  .empty h3{margin:0 0 6px;font-size:17px;color:var(--ink)}
-  .empty p{margin:0;font-size:13.5px;line-height:1.55}
-  .banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;
-    padding:9px 11px;font-size:12px;margin-bottom:10px;line-height:1.4;display:none}
+  main{padding:14px 14px 6px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;background:radial-gradient(circle at 12% -5%,#efeaff,#f7f6ff 55%)}
+  .empty{text-align:center;color:var(--muted);padding:30px 18px}
+  .empty .big{font-size:46px;margin-bottom:8px}
+  .empty h3{margin:0 0 6px;font-size:18px;color:var(--ink)}
+  .empty p{margin:0;font-size:13.5px;line-height:1.6}
+  .banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;padding:9px 11px;font-size:12px;margin-bottom:10px;line-height:1.4;display:none}
 
-  .msg{max-width:86%;margin-bottom:12px;padding:12px 14px;border-radius:18px;position:relative;
-    box-shadow:0 3px 10px rgba(76,29,149,.08)}
+  .msg{max-width:87%;margin-bottom:12px;padding:12px 14px;border-radius:19px;box-shadow:0 4px 12px rgba(76,29,149,.09);animation:pop .18s ease}
+  @keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
   .msg .head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
   .msg .who{font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
-  .msg .rep{border:none;background:rgba(0,0,0,.06);width:30px;height:30px;border-radius:9px;
-    cursor:pointer;font-size:15px;flex:0 0 auto}
-  .msg .orig{font-size:13px;opacity:.75;line-height:1.35}
+  .msg .rep{border:none;background:rgba(0,0,0,.06);width:31px;height:31px;border-radius:10px;cursor:pointer;font-size:15px;flex:0 0 auto}
+  .msg .orig{font-size:13px;opacity:.72;line-height:1.35}
   .msg .tr{font-size:19px;font-weight:700;line-height:1.4;margin-top:3px}
   .msg.a{background:var(--aBg);border:1px solid #e0e7ff;margin-right:auto;border-bottom-left-radius:6px}
   .msg.a .who{color:var(--a)} .msg.a .tr{color:var(--aInk)}
   .msg.b{background:var(--bBg);border:1px solid #ccfbef;margin-left:auto;border-bottom-right-radius:6px}
   .msg.b .who{color:var(--b)} .msg.b .tr{color:var(--bInk)}
+  .msg.live .tr{opacity:.55}
 
-  footer{padding:12px 16px calc(16px + env(safe-area-inset-bottom));background:#fff;
-    border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(76,29,149,.06)}
-  .status{text-align:center;font-size:13px;color:var(--muted);margin-bottom:12px;min-height:18px;font-weight:600}
+  footer{padding:12px 16px calc(16px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(76,29,149,.06)}
+  .status{text-align:center;font-size:13.5px;color:var(--a);margin-bottom:12px;min-height:20px;font-weight:700}
 
   .row3{display:flex;align-items:center;justify-content:center;gap:24px}
-  .side{width:52px;height:52px;border-radius:50%;border:1px solid var(--line);background:#fff;
-    color:var(--muted);font-size:20px;cursor:pointer;display:grid;place-items:center}
+  .side{width:52px;height:52px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:20px;cursor:pointer;display:grid;place-items:center}
   .side:active{background:#f5f3ff}
-  .mic{width:88px;height:88px;border-radius:50%;border:none;cursor:pointer;color:#fff;font-size:34px;
-    background:linear-gradient(135deg,#7c3aed,#4f46e5);box-shadow:0 12px 30px rgba(99,102,241,.5);
-    display:grid;place-items:center;transition:transform .15s}
+  .mic{width:88px;height:88px;border-radius:50%;border:none;cursor:pointer;color:#fff;font-size:34px;background:linear-gradient(135deg,#8b5cf6,#4f46e5);box-shadow:0 12px 30px rgba(99,102,241,.5);display:grid;place-items:center;transition:transform .15s}
   .mic:active{transform:scale(.94)}
-  .mic.on{background:linear-gradient(135deg,var(--danger),#f97316);animation:pulse 1.4s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}70%{box-shadow:0 0 0 22px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+  .mic.on{background:linear-gradient(135deg,var(--danger),#f97316);animation:pulseR 1.4s infinite}
+  @keyframes pulseR{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}70%{box-shadow:0 0 0 22px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
 
   .convo-btns{display:flex;gap:12px}
-  .talk{flex:1;border:none;border-radius:16px;padding:15px 8px;font-size:15px;font-weight:800;color:#fff;
-    cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:transform .12s}
-  .talk .mini{font-size:11px;font-weight:600;opacity:.9}
+  .talk{flex:1;border:none;border-radius:17px;padding:15px 8px;font-size:15px;font-weight:800;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:transform .12s}
+  .talk .mini{font-size:11px;font-weight:600;opacity:.92}
   .talk:active{transform:scale(.96)}
-  .talk.a{background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 8px 20px rgba(79,70,229,.4)}
-  .talk.b{background:linear-gradient(135deg,#14b8a6,#0d9488);box-shadow:0 8px 20px rgba(13,148,136,.4)}
-  .talk.on{animation:pulse 1.4s infinite}
+  .talk.a{background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 8px 20px rgba(79,70,229,.42)}
+  .talk.b{background:linear-gradient(135deg,#2dd4bf,#0d9488);box-shadow:0 8px 20px rgba(13,148,136,.42)}
+  .talk.a.live{animation:ringA 1.3s infinite}
+  .talk.b.live{animation:ringB 1.3s infinite}
+  @keyframes ringA{0%{box-shadow:0 0 0 0 rgba(79,70,229,.55)}70%{box-shadow:0 0 0 15px rgba(79,70,229,0)}100%{box-shadow:0 0 0 0 rgba(79,70,229,0)}}
+  @keyframes ringB{0%{box-shadow:0 0 0 0 rgba(13,148,136,.55)}70%{box-shadow:0 0 0 15px rgba(13,148,136,0)}100%{box-shadow:0 0 0 0 rgba(13,148,136,0)}}
   .row-mid{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
-  .stop{border:1px solid var(--line);background:#fff;color:var(--danger);font-weight:700;
-    border-radius:11px;padding:8px 16px;cursor:pointer;font-size:13px}
+  .stop{border:1px solid var(--line);background:#fff;color:var(--danger);font-weight:800;border-radius:12px;padding:9px 18px;cursor:pointer;font-size:13px}
   .hint{text-align:center;margin-top:12px}
-  .toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;font-size:12.5px;color:var(--muted);font-weight:600}
-  .toggle input{width:17px;height:17px;accent-color:var(--a)}
+  .toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;font-size:12.5px;color:var(--muted);font-weight:700}
+  .toggle input{width:18px;height:18px;accent-color:var(--a)}
 </style>
 </head>
 <body>
@@ -114,9 +102,9 @@
         <button class="tab" id="tabSolo">🗣️ Solo</button>
       </div>
       <div class="langbar">
-        <div class="field pa"><label id="labA">Person 1</label><select id="selA"></select></div>
+        <div class="field pa" id="fieldA"><label id="labA">Person 1</label><select id="selA"></select></div>
         <button class="swap" id="swapBtn" title="Swap">⇄</button>
-        <div class="field pb"><label id="labB">Person 2</label><select id="selB"></select></div>
+        <div class="field pb" id="fieldB"><label id="labB">Person 2</label><select id="selB"></select></div>
       </div>
     </header>
 
@@ -125,7 +113,7 @@
       <div class="empty" id="empty">
         <div class="big">💬</div>
         <h3 id="emptyTitle">Two-person conversation</h3>
-        <p id="emptyText">Tap a person's button below and speak. VoiceBridge translates it aloud into the other language — then automatically listens for the reply. Hand-free back and forth!</p>
+        <p id="emptyText">Tap a person's button and speak. VoiceBridge translates it aloud, lets you finish your sentence, then automatically listens for the reply.</p>
       </div>
     </main>
 
@@ -169,10 +157,9 @@ const LANGS=[
   {name:"Thai",code:"th",stt:"th-TH"},
 ];
 const $=id=>document.getElementById(id);
-const state={mode:"convo", a:"en", b:"ur"};
+const state={mode:"convo",a:"en",b:"ur"};
 try{ const m=localStorage.getItem("vb_mode"),a=localStorage.getItem("vb_a"),b=localStorage.getItem("vb_b");
   if(m)state.mode=m; if(a)state.a=a; if(b)state.b=b; }catch(_){}
-
 function nameOf(c){ return (LANGS.find(l=>l.code===c)||{}).name||c; }
 function sttOf(c){ return (LANGS.find(l=>l.code===c)||{}).stt||c; }
 function fill(sel,val){ sel.innerHTML=LANGS.map(l=>`<option value="${l.code}" ${l.code===val?"selected":""}>${l.name}</option>`).join(""); }
@@ -180,9 +167,8 @@ fill($("selA"),state.a); fill($("selB"),state.b);
 
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const secure=window.isSecureContext||location.protocol==="https:"||location.hostname==="localhost";
-if(!SR){ $("banner").style.display="block"; $("banner").innerHTML="⚠️ Voice input needs Google Chrome (desktop or Android). On iPhone browsers don't support it."; }
+if(!SR){ $("banner").style.display="block"; $("banner").innerHTML="⚠️ Voice input needs Google Chrome (desktop or Android). iPhone browsers don't support it."; }
 else if(!secure){ $("banner").style.display="block"; $("banner").innerHTML="⚠️ Open this from an <b>https://</b> link for the microphone to work."; }
-
 function setStatus(t){ $("status").textContent=t; }
 function savecfg(){ try{ localStorage.setItem("vb_mode",state.mode); localStorage.setItem("vb_a",state.a); localStorage.setItem("vb_b",state.b); }catch(_){} }
 
@@ -198,7 +184,7 @@ async function translate(text,from,to){
   return (d2.responseData&&d2.responseData.translatedText)||"(no translation)";
 }
 
-/* ---------- speech out (local voice, else online) ---------- */
+/* ---------- speech out ---------- */
 let ttsPrimed=false; const ttsAudio=new Audio();
 function primeTTS(){ if(ttsPrimed)return; ttsPrimed=true;
   if("speechSynthesis"in window){ try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(_){} }
@@ -233,9 +219,9 @@ if("speechSynthesis"in window){ speechSynthesis.getVoices(); speechSynthesis.onv
 let lastTranslated="";
 function addMsg(who,original,translated,targetLang){
   $("empty").style.display="none";
-  const w=document.createElement("div"); w.className="msg "+(who==="A"?"a":"b");
+  const w=document.createElement("div"); w.className="msg "+(who==="A"?"a":"b")+" live";
   w.innerHTML='<div class="head"><span class="who"></span><button class="rep">🔊</button></div><div class="orig"></div><div class="tr"></div>';
-  w.querySelector(".who").textContent = (who==="A"?"👤 ":"🧑 ")+nameOf(targetLang);
+  w.querySelector(".who").textContent=(who==="A"?"👤 ":"🧑 ")+nameOf(targetLang);
   w.querySelector(".orig").textContent=original;
   w.querySelector(".tr").textContent=translated;
   w.querySelector(".rep").onclick=()=>{ primeTTS(); speak(w.querySelector(".tr").textContent,targetLang); };
@@ -244,77 +230,99 @@ function addMsg(who,original,translated,targetLang){
 }
 function scrollT(){ const t=$("transcript"); t.scrollTop=t.scrollHeight; }
 
-/* ---------- engines ---------- */
-let recog=null, soloOn=false, convoOn=false, curTurn="A";
-function stopAll(){ soloOn=false; convoOn=false; try{recog&&recog.stop();}catch(_){}
-  $("micBtn").classList.remove("on"); $("talkA").classList.remove("on"); $("talkB").classList.remove("on"); }
+/* ---------- engine ---------- */
+let recog=null, running=false, listening=false, activeSide=null, mySeq=0;
+function setTurnUI(who){
+  $("fieldA").classList.toggle("turn",who==="A");
+  $("fieldB").classList.toggle("turn",who==="B");
+  $("talkA").classList.toggle("live",who==="A");
+  $("talkB").classList.toggle("live",who==="B");
+}
+function clearTurnUI(){ $("fieldA").classList.remove("turn"); $("fieldB").classList.remove("turn"); $("talkA").classList.remove("live"); $("talkB").classList.remove("live"); $("micBtn").classList.remove("on"); }
+function stopAll(){ running=false; listening=false; mySeq++; try{recog&&recog.stop();}catch(_){} try{recog&&recog.abort&&recog.abort();}catch(_){} clearTurnUI(); }
 
-/* Solo: hands-free, one direction A->B */
+/* SOLO — hands-free one direction */
 function soloToggle(){ primeTTS();
-  if(soloOn){ soloOn=false; try{recog.stop();}catch(_){} $("micBtn").classList.remove("on"); setStatus("Stopped — tap mic to talk"); return; }
-  soloOn=true; soloListen();
+  if(running){ stopAll(); setStatus("Stopped — tap mic to talk"); return; }
+  running=true; soloListen();
 }
 function soloListen(){
-  if(!SR){ setStatus("Voice needs Chrome"); soloOn=false; return; }
-  if(!secure){ setStatus("Open via https:// for the mic"); soloOn=false; return; }
+  if(!SR){ setStatus("Voice needs Chrome"); running=false; return; }
+  if(!secure){ setStatus("Open via https:// for the mic"); running=false; return; }
+  const seq=++mySeq;
   recog=new SR(); recog.lang=sttOf(state.a); recog.interimResults=true; recog.continuous=true;
-  recog.onstart=()=>{ $("micBtn").classList.add("on"); setStatus("🎤 Listening… just speak"); };
-  recog.onresult=e=>{ for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal){ const c=r[0].transcript.trim(); if(c) soloHandle(c); } } };
-  recog.onerror=e=>{ if(e.error==="not-allowed"||e.error==="service-not-allowed"){ soloOn=false; $("micBtn").classList.remove("on"); setStatus("Microphone blocked — allow mic in Chrome"); } };
-  recog.onend=()=>{ if(soloOn){ try{recog.start();}catch(_){ setTimeout(()=>{try{recog.start();}catch(__){}} ,300);} } else $("micBtn").classList.remove("on"); };
-  try{ recog.start(); }catch(_){ setTimeout(()=>{try{recog.start();}catch(__){}} ,300); }
+  recog.onstart=()=>{ if(seq!==mySeq)return; $("micBtn").classList.add("on"); setStatus("🎤 Listening… just speak"); };
+  recog.onresult=e=>{ if(seq!==mySeq)return; for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal){ const c=r[0].transcript.trim(); if(c.length>1) soloHandle(c); } } };
+  recog.onerror=e=>{ if(e.error==="not-allowed"||e.error==="service-not-allowed"){ stopAll(); setStatus("Microphone blocked — allow mic in Chrome"); } };
+  recog.onend=()=>{ if(seq!==mySeq)return; if(running){ try{recog.start();}catch(_){ setTimeout(()=>{ if(running&&seq===mySeq){try{recog.start();}catch(__){}} },300);} } else $("micBtn").classList.remove("on"); };
+  try{ recog.start(); }catch(_){ setTimeout(()=>{ if(running&&seq===mySeq){try{recog.start();}catch(__){}} },300); }
 }
 function soloHandle(text){
   const el=addMsg("A",text,"…",state.b); setStatus("Translating…");
-  translate(text,state.a,state.b).then(out=>{ lastTranslated=out; el.querySelector(".tr").textContent=out; scrollT();
-    setStatus("Done ✓ — keep talking"); if($("autoSpeak").checked) speak(out,state.b);
+  translate(text,state.a,state.b).then(out=>{ lastTranslated=out; el.classList.remove("live"); el.querySelector(".tr").textContent=out; scrollT();
+    setStatus("🔊 Done — keep talking"); if($("autoSpeak").checked) speak(out,state.b);
   }).catch(()=>setStatus("Translation failed — check internet"));
 }
 
-/* Conversation: two people, auto back-and-forth */
-function convoTalk(who){ primeTTS();
-  if(convoOn && curTurn===who && listening){ stopAll(); setStatus("Stopped — tap a person to talk"); return; }
-  convoOn=true; convoListen(who);
+/* CONVERSATION — smart pause-based turn taking */
+function convoTap(who){ primeTTS();
+  if(running){ stopAll(); setStatus("Stopped — tap a person to talk"); return; }
+  running=true; convoTurn(who);
 }
-let listening=false;
-function convoListen(who){
-  if(!SR){ setStatus("Voice needs Chrome"); convoOn=false; return; }
-  if(!secure){ setStatus("Open via https:// for the mic"); convoOn=false; return; }
-  curTurn=who;
-  const from = who==="A"?state.a:state.b;
-  const btn = who==="A"?$("talkA"):$("talkB");
-  $("talkA").classList.remove("on"); $("talkB").classList.remove("on");
-  try{recog&&recog.stop();}catch(_){}
+function convoTurn(who){
+  if(!running) return;
+  if(!SR){ setStatus("Voice needs Chrome"); running=false; return; }
+  if(!secure){ setStatus("Open via https:// for the mic"); running=false; return; }
+  activeSide=who; setTurnUI(who);
+  const from=who==="A"?state.a:state.b;
+  const seq=++mySeq;
+  let got=false, liveEl=null;
   recog=new SR(); recog.lang=sttOf(from); recog.interimResults=true; recog.continuous=false;
-  let got=false;
-  recog.onstart=()=>{ listening=true; btn.classList.add("on"); setStatus("🎤 "+nameOf(from)+" — speak now…"); };
-  recog.onresult=e=>{ let f=""; for(let i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) f+=e.results[i][0].transcript; }
-    if(f.trim()){ got=true; convoHandle(who,f.trim()); } };
-  recog.onerror=e=>{ listening=false; btn.classList.remove("on");
-    if(e.error==="not-allowed"||e.error==="service-not-allowed"){ convoOn=false; setStatus("Microphone blocked — allow mic in Chrome"); } };
-  recog.onend=()=>{ listening=false; btn.classList.remove("on");
-    if(convoOn && !got){ if($("autoContinue").checked) convoListen(who); else setStatus("Tap a person to talk"); } };
-  try{ recog.start(); }catch(_){}
+  recog.onstart=()=>{ if(seq!==mySeq)return; setStatus("🎤 "+nameOf(from)+" — speak now…"); };
+  recog.onresult=e=>{ if(seq!==mySeq)return;
+    let interim="",final="";
+    for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; if(e.results[i].isFinal) final+=t; else interim+=t; }
+    if(interim && !got){ if(!liveEl) liveEl=addMsg(who,interim,"…",who==="A"?state.b:state.a); else liveEl.querySelector(".orig").textContent=interim; scrollT(); }
+    if(final.trim().length>1){ got=true; convoProcess(who,final.trim(),liveEl); }
+  };
+  recog.onerror=e=>{ if(seq!==mySeq)return;
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"){ stopAll(); setStatus("Microphone blocked — allow mic in Chrome"); }
+  };
+  recog.onend=()=>{ if(seq!==mySeq)return;
+    if(!running){ clearTurnUI(); return; }
+    if(got) return;                       // handled by convoProcess
+    if(liveEl){ liveEl.remove(); liveEl=null; }
+    // silence = this person finished their turn -> hand over to the other person
+    if($("autoContinue").checked){ const nx=who==="A"?"B":"A";
+      setStatus("⏸ Now "+nameOf(nx==="A"?state.a:state.b)+" — go ahead");
+      setTimeout(()=>{ if(running) convoTurn(nx); }, 700);
+    } else { running=false; clearTurnUI(); setStatus("Tap a person to talk"); }
+  };
+  try{ recog.start(); }catch(_){ setTimeout(()=>{ if(running&&seq===mySeq){try{recog.start();}catch(__){}} },300); }
 }
-function convoHandle(who,text){
-  try{recog&&recog.stop();}catch(_){} listening=false;
-  const from = who==="A"?state.a:state.b, to = who==="A"?state.b:state.a;
-  const el=addMsg(who,text,"…",to); setStatus("Translating…");
-  translate(text,from,to).then(out=>{ lastTranslated=out; el.querySelector(".tr").textContent=out; scrollT();
+function convoProcess(who,text,liveEl){
+  const seq=mySeq;
+  try{recog&&recog.stop();}catch(_){}
+  const from=who==="A"?state.a:state.b, to=who==="A"?state.b:state.a;
+  const el=liveEl||addMsg(who,text,"…",to);
+  el.querySelector(".orig").textContent=text;
+  setStatus("Translating…");
+  translate(text,from,to).then(out=>{
+    lastTranslated=out; el.classList.remove("live"); el.querySelector(".tr").textContent=out; scrollT();
     setStatus("🔊 "+nameOf(to)+"…");
     speak(out,to,()=>{
-      if(convoOn && $("autoContinue").checked){ const nx=who==="A"?"B":"A";
-        setStatus("Now: "+nameOf(nx==="A"?state.a:state.b)+" — go ahead");
-        setTimeout(()=>{ if(convoOn) convoListen(nx); },500);
-      } else { $("talkA").classList.remove("on"); $("talkB").classList.remove("on"); setStatus("Done ✓ — tap a person to talk"); }
+      if(!running) return;
+      // let the SAME person keep talking; a pause (silence) will hand over automatically
+      setStatus(nameOf(from)+": keep talking, or pause to switch");
+      setTimeout(()=>{ if(running) convoTurn(who); }, 350);
     });
-  }).catch(()=>setStatus("Translation failed — check internet"));
+  }).catch(()=>{ setStatus("Translation issue — retrying…"); if(running) setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); }, 900); });
 }
 
-/* ---------- UI wiring ---------- */
+/* ---------- UI ---------- */
 function updateLabels(){
-  $("labA").textContent = state.mode==="convo"?"Person 1":"I speak";
-  $("labB").textContent = state.mode==="convo"?"Person 2":"Translate to";
+  $("labA").textContent=state.mode==="convo"?"Person 1":"I speak";
+  $("labB").textContent=state.mode==="convo"?"Person 2":"Translate to";
   $("talkAName").textContent=nameOf(state.a);
   $("talkBName").textContent=nameOf(state.b);
 }
@@ -325,25 +333,24 @@ function setMode(m){
   $("convoControls").style.display=m==="convo"?"block":"none";
   $("soloControls").style.display=m==="solo"?"block":"none";
   if(m==="convo"){ $("emptyTitle").textContent="Two-person conversation";
-    $("emptyText").textContent="Tap a person's button below and speak. VoiceBridge translates it aloud into the other language — then automatically listens for the reply.";
+    $("emptyText").textContent="Tap a person's button and speak. It translates aloud, lets you finish, then listens for the reply.";
     setStatus("Tap a person and start talking 👇"); }
   else { $("emptyTitle").textContent="Hands-free translator";
-    $("emptyText").textContent="Tap the mic once and just keep talking. Every sentence is translated and spoken instantly.";
+    $("emptyText").textContent="Tap the mic once and keep talking. Every sentence is translated and spoken instantly.";
     setStatus("Tap the mic and talk 👇"); }
   updateLabels();
 }
 $("tabConvo").onclick=()=>setMode("convo");
 $("tabSolo").onclick=()=>setMode("solo");
-$("selA").onchange=e=>{ state.a=e.target.value; savecfg(); updateLabels(); stopAll(); };
-$("selB").onchange=e=>{ state.b=e.target.value; savecfg(); updateLabels(); stopAll(); };
+$("selA").onchange=e=>{ state.a=e.target.value; savecfg(); updateLabels(); stopAll(); setStatus("Ready — tap a person"); };
+$("selB").onchange=e=>{ state.b=e.target.value; savecfg(); updateLabels(); stopAll(); setStatus("Ready — tap a person"); };
 $("swapBtn").onclick=()=>{ [state.a,state.b]=[state.b,state.a]; $("selA").value=state.a; $("selB").value=state.b; savecfg(); updateLabels(); stopAll(); };
-$("talkA").onclick=()=>convoTalk("A");
-$("talkB").onclick=()=>convoTalk("B");
+$("talkA").onclick=()=>convoTap("A");
+$("talkB").onclick=()=>convoTap("B");
 $("stopBtn").onclick=()=>{ stopAll(); setStatus("Stopped — tap a person to talk"); };
 $("micBtn").onclick=soloToggle;
 $("clearBtn").onclick=()=>{ $("transcript").querySelectorAll(".msg").forEach(m=>m.remove()); $("empty").style.display="block"; setStatus("Cleared"); };
 $("copyBtn").onclick=()=>{ if(lastTranslated&&navigator.clipboard){ navigator.clipboard.writeText(lastTranslated); setStatus("Copied ✓"); } };
-
 setMode(state.mode);
 </script>
 </body>
