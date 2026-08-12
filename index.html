@@ -190,7 +190,20 @@ function primeTTS(){ if(ttsPrimed)return; ttsPrimed=true;
   if("speechSynthesis"in window){ try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(_){} }
   try{ ttsAudio.src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA="; ttsAudio.play().catch(()=>{}); }catch(_){}
 }
-function pickVoice(c){ return ("speechSynthesis"in window)?speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith(c.toLowerCase())):null; }
+function scoreVoice(v){ const n=(v.name||"").toLowerCase(); let s=0;
+  if(/natural|neural|enhanced|premium|wavenet|siri/.test(n)) s+=8;   // most human-sounding engines
+  if(/google/.test(n)) s+=5;                                          // Google voices are warm/natural
+  if(/microsoft/.test(n)) s+=2;
+  if(!v.localService) s+=1;                                           // online voices are usually higher quality
+  return s;
+}
+function pickVoice(c){
+  if(!("speechSynthesis"in window)) return null;
+  const vs=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith(c.toLowerCase()));
+  if(!vs.length) return null;
+  vs.sort((a,b)=>scoreVoice(b)-scoreVoice(a));   // pick the most human-sounding available
+  return vs[0];
+}
 function speakOnline(text,code,done){
   let called=false; const fin=()=>{ if(!called){called=true; done&&done();} };
   const parts=[]; let s=(text||"").trim(); if(!s){ fin(); return; }
@@ -207,7 +220,7 @@ function speak(text,code,done){
   if(!text){ fin(); return; }
   const v=pickVoice(code);
   if(v){
-    const u=new SpeechSynthesisUtterance(text); u.lang=sttOf(code); u.voice=v; u.rate=1; u.pitch=1; u.volume=1;
+    const u=new SpeechSynthesisUtterance(text); u.lang=sttOf(code); u.voice=v; u.rate=0.95; u.pitch=1.03; u.volume=1;
     u.onend=fin; u.onerror=e=>{ if(e.error&&e.error!=="interrupted"&&e.error!=="canceled") speakOnline(text,code,fin); else fin(); };
     try{ speechSynthesis.cancel(); }catch(_){}
     speechSynthesis.speak(u); setTimeout(()=>{ try{ speechSynthesis.resume(); }catch(_){} },250);
