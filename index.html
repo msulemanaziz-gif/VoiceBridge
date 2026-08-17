@@ -90,6 +90,15 @@
   .hint{text-align:center;margin-top:12px}
   .toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;font-size:12.5px;color:var(--muted);font-weight:700}
   .toggle input{width:18px;height:18px;accent-color:var(--a)}
+  .textRow{display:none;gap:8px;margin-top:12px}
+  .textRow.show{display:flex}
+  .textRow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:13px;padding:12px 13px;font-size:15px;background:#fff;color:var(--ink)}
+  .sendbtn{border:none;border-radius:13px;padding:0 15px;font-weight:800;color:#fff;cursor:pointer;font-size:14px}
+  .sendbtn.a{background:linear-gradient(135deg,#6366f1,#4f46e5)}
+  .sendbtn.b{background:linear-gradient(135deg,#2dd4bf,#0d9488)}
+  .sendbtn.s{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+  .kbToggle{border:none;background:none;color:var(--a);font-weight:700;cursor:pointer;font-size:12.5px;text-decoration:underline;margin-top:12px}
+  body.novoice .convo-btns, body.novoice .row-mid, body.novoice .row3, body.novoice #soloControls .hint, body.novoice #kbToggle{display:none}
 </style>
 </head>
 <body>
@@ -139,6 +148,14 @@
         </div>
         <div class="hint"><label class="toggle"><input type="checkbox" id="autoSpeak" checked> Auto-speak translation</label></div>
       </div>
+
+      <div class="textRow" id="textRow">
+        <input id="textIn" type="text" placeholder="Type a message…" autocomplete="off" />
+        <button class="sendbtn a" id="sendA" title="Send as Person 1">➤ 1</button>
+        <button class="sendbtn b" id="sendB" title="Send as Person 2">➤ 2</button>
+        <button class="sendbtn s" id="sendSolo" title="Translate" style="display:none">➤</button>
+      </div>
+      <div style="text-align:center"><button class="kbToggle" id="kbToggle">⌨️ Type instead (works in any browser)</button></div>
     </footer>
   </div>
 
@@ -374,6 +391,10 @@ function setMode(m){
   else { $("emptyTitle").textContent="Hands-free translator";
     $("emptyText").textContent="Tap the mic once and keep talking. Every sentence is translated and spoken instantly.";
     setStatus("Tap the mic and talk 👇"); }
+  $("sendA").style.display=m==="convo"?"":"none";
+  $("sendB").style.display=m==="convo"?"":"none";
+  $("sendSolo").style.display=m==="solo"?"":"none";
+  $("textIn").placeholder = m==="convo" ? ("Type…  ➤1 "+nameOf(state.a)+",  ➤2 "+nameOf(state.b)) : ("Type in "+nameOf(state.a)+"…");
   updateLabels();
 }
 $("tabConvo").onclick=()=>setMode("convo");
@@ -387,6 +408,30 @@ $("stopBtn").onclick=()=>{ stopAll(); setStatus("Stopped — tap a person to tal
 $("micBtn").onclick=soloToggle;
 $("clearBtn").onclick=()=>{ $("transcript").querySelectorAll(".msg").forEach(m=>m.remove()); $("empty").style.display="block"; setStatus("Cleared"); };
 $("copyBtn").onclick=()=>{ if(lastTranslated&&navigator.clipboard){ navigator.clipboard.writeText(lastTranslated); setStatus("Copied ✓"); } };
+
+/* ---------- universal TYPE mode (works in every browser, incl. iPhone) ---------- */
+function sendText(who){
+  const t=($("textIn").value||"").trim(); if(!t) return;
+  primeTTS();
+  const from = (state.mode==="solo"||who==="A") ? state.a : state.b;
+  const to   = (state.mode==="solo"||who==="A") ? state.b : state.a;
+  const side = (state.mode!=="solo" && who==="B") ? "B" : "A";
+  $("textIn").value="";
+  const el=addMsg(side,t,"…",to); setStatus("💭 Translating…");
+  translate(t,from,to).then(out=>{ lastTranslated=out; el.classList.remove("live"); el.querySelector(".tr").textContent=out; scrollT();
+    setStatus("🔊 "+nameOf(to)+"…"); speak(out,to,()=>setStatus("Done ✓ — type again"));
+  }).catch(()=>{ el.classList.remove("live"); el.querySelector(".tr").textContent="(couldn't translate — try again)"; setStatus("Translation failed — check internet"); });
+}
+$("sendA").onclick=()=>sendText("A");
+$("sendB").onclick=()=>sendText("B");
+$("sendSolo").onclick=()=>sendText("A");
+$("textIn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); sendText("A"); } });
+$("kbToggle").onclick=()=>{ $("textRow").classList.toggle("show"); if($("textRow").classList.contains("show")) $("textIn").focus(); };
+
+// If this browser can't do voice input (Firefox, iPhone, etc.), switch to type mode automatically.
+if(!SR){ document.body.classList.add("novoice"); $("textRow").classList.add("show");
+  $("banner").style.display="block"; $("banner").innerHTML="⌨️ <b>Type mode</b> is on — works in any browser. Type below, hear the translation aloud. (For live <b>voice</b> input, open in Google Chrome.)"; }
+
 setMode(state.mode);
 </script>
 </body>
