@@ -173,14 +173,17 @@ function setStatus(t){ $("status").textContent=t; }
 function savecfg(){ try{ localStorage.setItem("vb_mode",state.mode); localStorage.setItem("vb_a",state.a); localStorage.setItem("vb_b",state.b); }catch(_){} }
 
 /* ---------- translation ---------- */
+async function fetchT(url,ms){ const c=new AbortController(); const id=setTimeout(()=>c.abort(),ms);
+  try{ const r=await fetch(url,{signal:c.signal}); clearTimeout(id); return r; }
+  catch(e){ clearTimeout(id); throw e; } }
 async function translate(text,from,to){
   try{
     const url="https://translate.googleapis.com/translate_a/single?client=gtx&sl="+encodeURIComponent(from)+"&tl="+encodeURIComponent(to)+"&dt=t&q="+encodeURIComponent(text);
-    const r=await fetch(url);
+    const r=await fetchT(url,7000);
     if(r.ok){ const d=await r.json(); if(Array.isArray(d)&&Array.isArray(d[0])){ const out=d[0].map(s=>(s&&s[0])?s[0]:"").join(""); if(out.trim())return out; } }
   }catch(_){}
   const u2="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+"&langpair="+encodeURIComponent(from)+"|"+encodeURIComponent(to);
-  const r2=await fetch(u2); const d2=await r2.json();
+  const r2=await fetchT(u2,7000); const d2=await r2.json();
   return (d2.responseData&&d2.responseData.translatedText)||"(no translation)";
 }
 
@@ -205,25 +208,35 @@ function pickVoice(c){
   return vs[0];
 }
 function speakOnline(text,code,done){
-  let called=false; const fin=()=>{ if(!called){called=true; done&&done();} };
-  const parts=[]; let s=(text||"").trim(); if(!s){ fin(); return; }
+  let called=false,wd=null;
+  const fin=()=>{ if(called)return; called=true; if(wd)clearTimeout(wd); done&&done(); };
+  const s0=(text||"").trim(); if(!s0){ fin(); return; }
+  wd=setTimeout(fin, Math.min(25000, 3500+s0.length*70));   // watchdog: never hang
+  const parts=[]; let s=s0;
   while(s.length>180){ let i=s.lastIndexOf(" ",180); if(i<=0)i=180; parts.push(s.slice(0,i)); s=s.slice(i).trim(); }
   if(s)parts.push(s);
   const tl=code==="zh"?"zh-CN":code; let i=0;
-  const next=()=>{ if(i>=parts.length){ fin(); return; }
-    ttsAudio.src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+encodeURIComponent(tl)+"&q="+encodeURIComponent(parts[i++]);
-    ttsAudio.onended=next; ttsAudio.onerror=fin; ttsAudio.play().catch(fin);
+  const next=()=>{ if(called)return; if(i>=parts.length){ fin(); return; }
+    try{ ttsAudio.src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+encodeURIComponent(tl)+"&q="+encodeURIComponent(parts[i++]);
+      ttsAudio.onended=next; ttsAudio.onerror=fin; const p=ttsAudio.play(); if(p&&p.catch)p.catch(fin);
+    }catch(_){ fin(); }
   }; next();
 }
 function speak(text,code,done){
-  let called=false; const fin=()=>{ if(!called){called=true; done&&done();} };
-  if(!text){ fin(); return; }
+  if(!text){ done&&done(); return; }
+  let called=false,wd=null,rez=null;
+  const fin=()=>{ if(called)return; called=true; if(wd)clearTimeout(wd); if(rez)clearInterval(rez); done&&done(); };
+  const words=text.trim().split(/\s+/).length;
+  wd=setTimeout(fin, Math.min(23000, 2200+words*520+text.length*22));   // watchdog: guarantees the turn continues
   const v=pickVoice(code);
-  if(v){
-    const u=new SpeechSynthesisUtterance(text); u.lang=sttOf(code); u.voice=v; u.rate=0.95; u.pitch=1.03; u.volume=1;
-    u.onend=fin; u.onerror=e=>{ if(e.error&&e.error!=="interrupted"&&e.error!=="canceled") speakOnline(text,code,fin); else fin(); };
-    try{ speechSynthesis.cancel(); }catch(_){}
-    speechSynthesis.speak(u); setTimeout(()=>{ try{ speechSynthesis.resume(); }catch(_){} },250);
+  if(v && "speechSynthesis" in window){
+    try{
+      const u=new SpeechSynthesisUtterance(text); u.lang=sttOf(code); u.voice=v; u.rate=0.95; u.pitch=1.03; u.volume=1;
+      u.onend=fin; u.onerror=e=>{ if(e.error&&e.error!=="interrupted"&&e.error!=="canceled") speakOnline(text,code,fin); else fin(); };
+      try{ speechSynthesis.cancel(); }catch(_){}
+      setTimeout(()=>{ if(called)return; try{ speechSynthesis.speak(u); }catch(_){ speakOnline(text,code,fin); } }, 70);
+      rez=setInterval(()=>{ try{ if(speechSynthesis.speaking) speechSynthesis.resume(); }catch(_){} }, 5000);  // Chrome 15s-pause fix
+    }catch(_){ speakOnline(text,code,fin); }
   } else { speakOnline(text,code,fin); }
 }
 if("speechSynthesis"in window){ speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices(); }
@@ -278,58 +291,68 @@ function soloHandle(text){
 }
 
 /* CONVERSATION — smart pause-based turn taking */
-function convoTap(who){ primeTTS();
-  if(running){ stopAll(); setStatus("Stopped — tap a person to talk"); return; }
-  running=true; convoTurn(who);
-}
+function convoTap(who){ primeTTS(); running=true; convoTurn(who); }   // tap a person anytime to take/switch the turn
 function convoTurn(who){
   if(!running) return;
-  if(!SR){ setStatus("Voice needs Chrome"); running=false; return; }
-  if(!secure){ setStatus("Open via https:// for the mic"); running=false; return; }
+  if(!SR){ setStatus("Voice needs Chrome"); running=false; clearTurnUI(); return; }
+  if(!secure){ setStatus("Open via https:// for the mic"); running=false; clearTurnUI(); return; }
   activeSide=who; setTurnUI(who);
   const from=who==="A"?state.a:state.b;
   const seq=++mySeq;
-  let got=false, liveEl=null;
-  recog=new SR(); recog.lang=sttOf(from); recog.interimResults=true; recog.continuous=false;
-  recog.onstart=()=>{ if(seq!==mySeq)return; setStatus("🎤 "+nameOf(from)+" — speak now…"); };
-  recog.onresult=e=>{ if(seq!==mySeq)return;
+  try{ recog&&recog.abort&&recog.abort(); }catch(_){}
+  try{ speechSynthesis.cancel(); }catch(_){}
+  try{ ttsAudio.pause(); }catch(_){}
+  let got=false, liveEl=null, started=false, R;
+  try{ R=new SR(); }catch(_){ setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); },500); return; }
+  recog=R; R.lang=sttOf(from); R.interimResults=true; R.continuous=false;
+  R.onstart=()=>{ if(seq!==mySeq)return; started=true; setStatus("🎤 "+nameOf(from)+" — speak now…"); };
+  R.onresult=e=>{ if(seq!==mySeq)return;
     let interim="",final="";
     for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; if(e.results[i].isFinal) final+=t; else interim+=t; }
     if(interim && !got){ if(!liveEl) liveEl=addMsg(who,interim,"…",who==="A"?state.b:state.a); else liveEl.querySelector(".orig").textContent=interim; scrollT(); }
-    if(final.trim().length>1){ got=true; convoProcess(who,final.trim(),liveEl); }
+    if(final.trim().length>1){ got=true; convoProcess(who,final.trim(),liveEl,seq); }
   };
-  recog.onerror=e=>{ if(seq!==mySeq)return;
-    if(e.error==="not-allowed"||e.error==="service-not-allowed"){ stopAll(); setStatus("Microphone blocked — allow mic in Chrome"); }
+  R.onerror=e=>{ if(seq!==mySeq)return;
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"){ stopAll(); setStatus("🎤 Microphone blocked — allow mic in Chrome site settings"); }
+    // network / no-speech / aborted fall through to onend which recovers
   };
-  recog.onend=()=>{ if(seq!==mySeq)return;
+  R.onend=()=>{ if(seq!==mySeq)return;
     if(!running){ clearTurnUI(); return; }
     if(got) return;                       // handled by convoProcess
     if(liveEl){ liveEl.remove(); liveEl=null; }
-    // silence = this person finished their turn -> hand over to the other person
     if($("autoContinue").checked){ const nx=who==="A"?"B":"A";
       setStatus("⏸ Now "+nameOf(nx==="A"?state.a:state.b)+" — go ahead");
-      setTimeout(()=>{ if(running) convoTurn(nx); }, 700);
+      setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(nx); }, 650);
     } else { running=false; clearTurnUI(); setStatus("Tap a person to talk"); }
   };
-  try{ recog.start(); }catch(_){ setTimeout(()=>{ if(running&&seq===mySeq){try{recog.start();}catch(__){}} },300); }
+  // start after a short gap (mic free after speaking); retry + watchdog so it can never silently stall
+  setTimeout(()=>{
+    if(seq!==mySeq||!running) return;
+    try{ R.start(); }
+    catch(_){ setTimeout(()=>{ if(seq!==mySeq||!running)return; try{ R.start(); }catch(__){ if(running&&seq===mySeq) setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); },600); } }, 400); }
+    setTimeout(()=>{ if(seq!==mySeq||!running||started||got) return; try{ R.abort&&R.abort(); }catch(_){} if(running&&seq===mySeq) convoTurn(who); }, 3000);
+  }, 300);
 }
-function convoProcess(who,text,liveEl){
-  const seq=mySeq;
-  try{recog&&recog.stop();}catch(_){}
+function convoProcess(who,text,liveEl,seq){
+  try{ recog&&recog.stop&&recog.stop(); }catch(_){}
   const from=who==="A"?state.a:state.b, to=who==="A"?state.b:state.a;
   const el=liveEl||addMsg(who,text,"…",to);
   el.querySelector(".orig").textContent=text;
-  setStatus("Translating…");
+  setStatus("💭 Translating…");
   translate(text,from,to).then(out=>{
-    lastTranslated=out; el.classList.remove("live"); el.querySelector(".tr").textContent=out; scrollT();
-    setStatus("🔊 "+nameOf(to)+"…");
+    if(el){ el.classList.remove("live"); el.querySelector(".tr").textContent=out; }
+    scrollT();
+    if(!running || seq!==mySeq) return;   // turn was superseded (user tapped/stopped)
+    lastTranslated=out; setStatus("🔊 "+nameOf(to)+"…");
     speak(out,to,()=>{
-      if(!running) return;
-      // let the SAME person keep talking; a pause (silence) will hand over automatically
+      if(!running || seq!==mySeq) return;
       setStatus(nameOf(from)+": keep talking, or pause to switch");
-      setTimeout(()=>{ if(running) convoTurn(who); }, 350);
+      setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); }, 400);   // same person may continue; pause hands over
     });
-  }).catch(()=>{ setStatus("Translation issue — retrying…"); if(running) setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); }, 900); });
+  }).catch(()=>{
+    if(el){ el.classList.remove("live"); el.querySelector(".tr").textContent="(couldn't translate — please repeat)"; }
+    if(running&&seq===mySeq) setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); }, 700);
+  });
 }
 
 /* ---------- UI ---------- */
