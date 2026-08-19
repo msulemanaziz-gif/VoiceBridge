@@ -156,6 +156,10 @@
         <button class="sendbtn s" id="sendSolo" title="Translate" style="display:none">➤</button>
       </div>
       <div style="text-align:center"><button class="kbToggle" id="kbToggle">⌨️ Type instead (works in any browser)</button></div>
+      <div style="text-align:center;margin-top:8px;font-size:11px;color:#9aa0ac">
+        <button id="testVoice" style="border:1px solid var(--line);background:#fff;color:var(--a);font-weight:700;border-radius:10px;padding:7px 13px;cursor:pointer;font-size:12px">🔊 Test voice</button>
+        <div id="verLine" style="margin-top:6px">v8 · <span id="voiceInfo">voice: not tested</span></div>
+      </div>
     </footer>
   </div>
 
@@ -224,9 +228,23 @@ function pickVoice(c){
   vs.sort((a,b)=>scoreVoice(b)-scoreVoice(a));   // pick the most human-sounding available
   return vs[0];
 }
-let curAudio=null;
+let curAudio=null, lastVoiceInfo="—";
+// Android routes audio to the call channel while the mic is open (worst with Bluetooth) — fully release it first.
+function releaseMic(){
+  try{ if(recog){ recog.onend=null; recog.onresult=null; recog.onerror=null; recog.onstart=null;
+    try{ recog.abort&&recog.abort(); }catch(_){} try{ recog.stop&&recog.stop(); }catch(_){} recog=null; } }catch(_){}
+}
 function stopAudio(){
   try{ if(curAudio){ curAudio.onended=null; curAudio.onerror=null; curAudio.pause(); curAudio.src=""; curAudio=null; } }catch(_){}
+}
+function ttsUrls(chunk,code){
+  const tl=code==="zh"?"zh-CN":code;
+  const q=encodeURIComponent(chunk);
+  return [                                   // several sources — if one is blocked, the next is tried
+    "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+encodeURIComponent(tl)+"&q="+q,
+    "https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl="+encodeURIComponent(tl)+"&q="+q,
+    "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&ttsspeed=1&total=1&idx=0&textlen="+chunk.length+"&tl="+encodeURIComponent(tl)+"&q="+q
+  ];
 }
 function speakOnline(text,code,done){
   let called=false,wd=null;
@@ -236,21 +254,28 @@ function speakOnline(text,code,done){
   const parts=[]; let s=s0;
   while(s.length>180){ let i=s.lastIndexOf(" ",180); if(i<=0)i=180; parts.push(s.slice(0,i)); s=s.slice(i).trim(); }
   if(s)parts.push(s);
-  const tl=code==="zh"?"zh-CN":code; let i=0;
+  let i=0;
+  const playChunk=(chunk,onDone)=>{
+    const urls=ttsUrls(chunk,code); let u=0;
+    const tryNext=()=>{
+      if(called)return;
+      if(u>=urls.length){ lastVoiceInfo="online: all sources failed"; onDone(false); return; }
+      stopAudio();
+      try{
+        const a=new Audio();                 // NEW element every play (reuse goes silent on mobile)
+        a.preload="auto"; a.crossOrigin="anonymous"; a.src=urls[u++];
+        curAudio=a;
+        a.onended=()=>onDone(true);
+        a.onerror=()=>{ tryNext(); };
+        const p=a.play();
+        if(p&&p.catch) p.catch(()=>{ tryNext(); });
+      }catch(_){ tryNext(); }
+    }; tryNext();
+  };
   const next=()=>{
     if(called)return;
     if(i>=parts.length){ stopAudio(); fin(); return; }
-    stopAudio();
-    try{
-      // NEW Audio element every time — reusing one stops producing sound on mobile after a few plays
-      const a=new Audio("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+encodeURIComponent(tl)+"&q="+encodeURIComponent(parts[i++]));
-      a.preload="auto";
-      curAudio=a;
-      a.onended=next;
-      a.onerror=()=>{ stopAudio(); fin(); };
-      const p=a.play();
-      if(p&&p.catch) p.catch(()=>{ stopAudio(); fin(); });
-    }catch(_){ stopAudio(); fin(); }
+    playChunk(parts[i++],ok=>{ if(!ok){ stopAudio(); fin(); return; } lastVoiceInfo="online voice ✓"; next(); });
   }; next();
 }
 function speak(text,code,done){
@@ -272,7 +297,7 @@ function speak(text,code,done){
   if(v && "speechSynthesis" in window){
     try{
       const u=new SpeechSynthesisUtterance(text); u.lang=sttOf(code); u.voice=v; u.rate=0.95; u.pitch=1.03; u.volume=1;
-      u.onstart=()=>{ began=true; if(startWd)clearTimeout(startWd); };
+      u.onstart=()=>{ began=true; lastVoiceInfo="device voice: "+(v.name||"?"); if(startWd)clearTimeout(startWd); };
       u.onend=()=>{ if(!wentOnline) fin(); };
       u.onerror=e=>{ if(wentOnline)return;
         if(e.error&&e.error!=="interrupted"&&e.error!=="canceled") goOnline(); else fin(); };
@@ -384,7 +409,7 @@ function convoTurn(who){
   }, 300);
 }
 function convoProcess(who,text,liveEl,seq){
-  try{ recog&&recog.stop&&recog.stop(); }catch(_){}
+  releaseMic();                                   // free the mic BEFORE any audio plays (Android/Bluetooth fix)
   const from=who==="A"?state.a:state.b, to=who==="A"?state.b:state.a;
   const el=liveEl||addMsg(who,text,"…",to);
   el.querySelector(".orig").textContent=text;
@@ -394,11 +419,15 @@ function convoProcess(who,text,liveEl,seq){
     scrollT();
     if(!running || seq!==mySeq) return;   // turn was superseded (user tapped/stopped)
     lastTranslated=out; setStatus("🔊 "+nameOf(to)+"…");
-    speak(out,to,()=>{
+    releaseMic();
+    setTimeout(()=>{                       // let Android switch the audio channel back from "call" to "media"
       if(!running || seq!==mySeq) return;
-      setStatus(nameOf(from)+": keep talking, or pause to switch");
-      setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); }, 400);   // same person may continue; pause hands over
-    });
+      speak(out,to,()=>{
+        if(!running || seq!==mySeq) return;
+        setStatus(nameOf(from)+": keep talking, or pause to switch");
+        setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); }, 450);  // same person may continue; pause hands over
+      });
+    }, 350);
   }).catch(()=>{
     if(el){ el.classList.remove("live"); el.querySelector(".tr").textContent="(couldn't translate — please repeat)"; }
     if(running&&seq===mySeq) setTimeout(()=>{ if(running&&seq===mySeq) convoTurn(who); }, 700);
@@ -460,6 +489,17 @@ $("sendB").onclick=()=>sendText("B");
 $("sendSolo").onclick=()=>sendText("A");
 $("textIn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); sendText("A"); } });
 $("kbToggle").onclick=()=>{ $("textRow").classList.toggle("show"); if($("textRow").classList.contains("show")) $("textIn").focus(); };
+
+/* Test voice — proves whether audio works on this device, and shows which engine played it */
+$("testVoice").onclick=()=>{
+  primeTTS(); stopAll(); releaseMic(); lastVoiceInfo="starting…";
+  $("voiceInfo").textContent="voice: testing…";
+  const to=state.b;
+  const samples={en:"Hello, this is a voice test.",ur:"یہ آواز کا ٹیسٹ ہے۔",ar:"هذا اختبار الصوت.",hi:"यह आवाज़ का परीक्षण है।"};
+  const t=samples[to]||"This is a voice test.";
+  setStatus("🔊 Testing "+nameOf(to)+" voice…");
+  setTimeout(()=>{ speak(t,to,()=>{ $("voiceInfo").textContent="voice: "+lastVoiceInfo; setStatus("Voice test finished — did you hear it?"); }); },250);
+};
 
 // If this browser can't do voice input (Firefox, iPhone, etc.), switch to type mode automatically.
 if(!SR){ document.body.classList.add("novoice"); $("textRow").classList.add("show");
