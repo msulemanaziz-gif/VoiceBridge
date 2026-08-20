@@ -3,165 +3,229 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<meta name="theme-color" content="#4f46e5" />
+<meta name="theme-color" content="#4338ca" />
 <meta name="mobile-web-app-capable" content="yes" />
 <title>VoiceBridge — Live Voice Interpreter</title>
 <style>
   :root{
-    --ink:#181633;--muted:#6b7280;--line:#e9e7fb;--card:#fff;
-    --a:#4f46e5;--aBg:#eef2ff;--aInk:#2e2a7a;--aBd:#dcd9fb;
-    --b:#0d9488;--bBg:#e6fbf5;--bInk:#0d564d;--bBd:#c6f5e8;
-    --warn:#b45309;--danger:#dc2626;--ok:#059669;
+    --ink:#15132e;--muted:#6f7288;--soft:#f6f5fd;--line:#e8e6f7;
+    --a1:#6366f1;--a2:#4338ca;--aBg:#eef0ff;--aInk:#2b2582;--aBd:#dcdcfb;
+    --b1:#2dd4bf;--b2:#0d9488;--bBg:#e4fbf5;--bInk:#0b544b;--bBd:#c2f3e6;
+    --danger:#e11d48;--warn:#b45309;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Naskh Arabic",Helvetica,Arial,sans-serif;
-    background:linear-gradient(160deg,#4f46e5,#7c3aed 55%,#0ea5e9);color:var(--ink);
-    display:flex;align-items:center;justify-content:center;min-height:100dvh;overscroll-behavior:none}
-  .app{width:100%;max-width:520px;background:#f8f7ff;display:flex;flex-direction:column;
+    background:linear-gradient(165deg,#4338ca 0%,#6d28d9 45%,#0891b2 100%);
+    color:var(--ink);display:flex;align-items:center;justify-content:center;
+    min-height:100dvh;overscroll-behavior:none}
+  .app{width:100%;max-width:520px;background:#fbfaff;display:flex;flex-direction:column;
     position:relative;height:100dvh;overflow:hidden}
-  @media(min-width:620px){body{padding:16px}
-    .app{height:auto;max-height:calc(100dvh - 32px);border-radius:28px;box-shadow:0 28px 64px rgba(49,26,138,.5)}}
+  @media(min-width:620px){body{padding:18px}
+    .app{height:auto;max-height:calc(100dvh - 36px);border-radius:30px;
+      box-shadow:0 30px 70px rgba(40,20,110,.55)}}
 
-  /* ---------- header ---------- */
-  header{background:linear-gradient(135deg,#6d28d9,#4f46e5);color:#fff;
-    padding:calc(14px + env(safe-area-inset-top)) 16px 14px}
-  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px}
-  .brand .dot{width:34px;height:34px;border-radius:11px;background:rgba(255,255,255,.2);
-    display:grid;place-items:center;font-size:18px}
-  .brand small{font-weight:600;font-size:11px;opacity:.9;display:block;margin-top:1px}
-  .pair{display:flex;align-items:center;gap:8px;margin-top:12px}
-  .pk{flex:1;min-width:0}
-  .pk label{display:block;font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:800;margin:0 0 4px 3px}
-  .pk.A label{color:#c7d2fe}.pk.B label{color:#99f6e4}
-  select{width:100%;appearance:none;-webkit-appearance:none;border:none;border-radius:11px;
-    padding:11px 10px;font-size:14px;font-weight:800;background:#fff;color:var(--ink);
-    box-shadow:0 3px 9px rgba(0,0,0,.14)}
-  .swapb{width:40px;height:40px;border-radius:12px;border:none;background:rgba(255,255,255,.24);
-    color:#fff;font-size:18px;font-weight:800;cursor:pointer;flex:0 0 auto}
+  /* ============ header ============ */
+  header{position:relative;color:#fff;padding:calc(16px + env(safe-area-inset-top)) 18px 18px;
+    background:linear-gradient(135deg,#4f46e5,#6d28d9 60%,#7e22ce);overflow:hidden}
+  header::after{content:"";position:absolute;right:-40px;top:-50px;width:170px;height:170px;
+    border-radius:50%;background:rgba(255,255,255,.09)}
+  .brand{display:flex;align-items:center;gap:11px;position:relative;z-index:1}
+  .brand .logo{width:40px;height:40px;border-radius:13px;flex:0 0 auto;
+    background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:19px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+  .brand b{font-size:20px;font-weight:800;letter-spacing:.2px;display:block;line-height:1.15}
+  .brand span{font-size:11.5px;opacity:.9;font-weight:600}
 
-  /* ---------- state strip ---------- */
-  .state{display:flex;align-items:center;gap:9px;padding:11px 14px;background:#fff;
-    border-bottom:1px solid var(--line);font-weight:800;font-size:13.5px}
-  .orb{width:13px;height:13px;border-radius:50%;background:#cbd5e1;flex:0 0 auto}
-  .state.listening .orb{background:#2563eb;animation:pulse 1.2s infinite}
-  .state.processing .orb{background:#d97706;animation:pulse 1.2s infinite}
-  .state.translating .orb{background:#7c3aed;animation:pulse 1.2s infinite}
-  .state.speaking .orb{background:#059669;animation:pulse 1.2s infinite}
-  .state.paused .orb{background:#94a3b8}
-  .state.error .orb{background:var(--danger)}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}70%{box-shadow:0 0 0 9px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
-  .state .lvl{flex:1;height:5px;background:#eef0f6;border-radius:5px;overflow:hidden}
-  .state .lvl i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4f46e5,#14b8a6);transition:width .09s}
+  .pair{display:flex;align-items:stretch;gap:9px;margin-top:15px;position:relative;z-index:1}
+  .side{flex:1;min-width:0;background:rgba(255,255,255,.14);border-radius:15px;padding:9px 9px 8px;
+    border:1px solid rgba(255,255,255,.18)}
+  .side .cap{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .side .av{width:19px;height:19px;border-radius:50%;display:grid;place-items:center;
+    font-size:10.5px;font-weight:800;color:#fff;flex:0 0 auto}
+  .side.A .av{background:linear-gradient(135deg,var(--a1),var(--a2))}
+  .side.B .av{background:linear-gradient(135deg,var(--b1),var(--b2))}
+  .side .cap span{font-size:10px;letter-spacing:.7px;text-transform:uppercase;font-weight:800;opacity:.92}
+  select{width:100%;appearance:none;-webkit-appearance:none;border:none;border-radius:10px;
+    padding:10px 9px;font-size:14px;font-weight:800;background:#fff;color:var(--ink);cursor:pointer}
+  .swapb{align-self:center;width:38px;height:38px;border-radius:50%;border:none;flex:0 0 auto;
+    background:rgba(255,255,255,.22);color:#fff;font-size:16px;font-weight:800;cursor:pointer;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);transition:transform .3s}
+  .swapb:active{transform:rotate(180deg)}
 
-  /* ---------- conversation ---------- */
-  main{padding:14px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
-  .note{border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.5;margin-bottom:11px}
-  .note.warn{background:#fff7ed;border:1px solid #fed7aa;color:var(--warn)}
+  /* ============ status ============ */
+  .status{display:flex;align-items:center;gap:10px;padding:11px 16px;background:#fff;
+    border-bottom:1px solid var(--line)}
+  .orb{width:11px;height:11px;border-radius:50%;background:#c9cddb;flex:0 0 auto}
+  .stxt{font-weight:800;font-size:13px;flex:1;color:var(--muted)}
+  .status.listening .orb{background:#3b82f6;animation:pl 1.2s infinite}
+  .status.listening .stxt{color:#1d4ed8}
+  .status.processing .orb{background:#f59e0b;animation:pl 1.2s infinite}
+  .status.processing .stxt{color:#b45309}
+  .status.translating .orb{background:#8b5cf6;animation:pl 1.2s infinite}
+  .status.translating .stxt{color:#6d28d9}
+  .status.speaking .orb{background:#10b981;animation:pl 1.2s infinite}
+  .status.speaking .stxt{color:#047857}
+  .status.error .orb{background:var(--danger)} .status.error .stxt{color:var(--danger)}
+  @keyframes pl{0%{box-shadow:0 0 0 0 currentColor;opacity:1}70%{box-shadow:0 0 0 8px transparent;opacity:.75}100%{box-shadow:0 0 0 0 transparent;opacity:1}}
+  .bars{display:flex;align-items:flex-end;gap:2.5px;height:16px;flex:0 0 auto}
+  .bars i{width:3px;background:linear-gradient(180deg,#6366f1,#14b8a6);border-radius:2px;
+    height:3px;transition:height .09s}
+
+  /* ============ conversation ============ */
+  main{padding:15px 15px 6px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;
+    background:radial-gradient(circle at 10% -8%,#f0edff,#fbfaff 55%)}
+  .note{border-radius:13px;padding:11px 13px;font-size:12.5px;line-height:1.55;margin-bottom:12px}
+  .note.warn{background:#fff8ed;border:1px solid #fcd9a5;color:var(--warn)}
   .note.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
-  .welcome{text-align:center;color:var(--muted);padding:22px 14px}
-  .welcome .big{font-size:40px;margin-bottom:8px}
-  .welcome h3{margin:0 0 6px;font-size:17px;color:var(--ink)}
-  .welcome p{margin:0;font-size:13.5px;line-height:1.6}
-  .turn{margin-bottom:13px;max-width:88%;animation:rise .18s ease}
-  @keyframes rise{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+  .welcome{text-align:center;color:var(--muted);padding:26px 16px}
+  .welcome .ico{width:74px;height:74px;margin:0 auto 14px;border-radius:24px;display:grid;place-items:center;
+    font-size:32px;background:linear-gradient(135deg,#eef0ff,#e4fbf5);
+    box-shadow:0 8px 22px rgba(79,70,229,.16)}
+  .welcome h3{margin:0 0 7px;font-size:18px;color:var(--ink);font-weight:800}
+  .welcome p{margin:0 auto;font-size:13.5px;line-height:1.65;max-width:330px}
+  .steps{display:flex;justify-content:center;gap:7px;margin-top:15px;flex-wrap:wrap}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 12px;
+    font-size:11.5px;font-weight:700;color:var(--muted)}
+
+  .turn{margin-bottom:14px;max-width:89%;animation:rise .2s ease}
+  @keyframes rise{from{transform:translateY(7px);opacity:0}to{transform:none;opacity:1}}
   .turn.A{margin-right:auto}.turn.B{margin-left:auto}
-  .who{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin:0 0 4px 3px}
-  .turn.A .who{color:var(--a)}.turn.B .who{color:var(--b);text-align:right}
-  .card{border-radius:16px;padding:11px 13px;border:1px solid}
-  .turn.A .card{background:var(--aBg);border-color:var(--aBd);border-bottom-left-radius:5px}
-  .turn.B .card{background:var(--bBg);border-color:var(--bBd);border-bottom-right-radius:5px}
-  .said{font-size:15px;line-height:1.45;opacity:.72}
-  .divider{height:1px;background:rgba(0,0,0,.08);margin:8px 0}
-  .out{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
-  .out .txt{font-size:19px;font-weight:700;line-height:1.45;flex:1}
-  .turn.A .out .txt{color:var(--aInk)}.turn.B .out .txt{color:var(--bInk)}
-  .replay{border:none;background:rgba(0,0,0,.07);width:33px;height:33px;border-radius:10px;
-    cursor:pointer;font-size:15px;flex:0 0 auto}
+  .who{display:flex;align-items:center;gap:6px;margin:0 0 5px 2px;font-size:10.5px;
+    font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+  .turn.B .who{flex-direction:row-reverse;margin:0 2px 5px 0}
+  .who .av{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;
+    font-size:9.5px;color:#fff;font-weight:800}
+  .turn.A .who{color:var(--a2)} .turn.A .who .av{background:linear-gradient(135deg,var(--a1),var(--a2))}
+  .turn.B .who{color:var(--b2)} .turn.B .who .av{background:linear-gradient(135deg,var(--b1),var(--b2))}
+  .card{border-radius:18px;padding:12px 14px;border:1px solid;box-shadow:0 4px 14px rgba(60,30,140,.07)}
+  .turn.A .card{background:var(--aBg);border-color:var(--aBd);border-bottom-left-radius:6px}
+  .turn.B .card{background:var(--bBg);border-color:var(--bBd);border-bottom-right-radius:6px}
+  .said{font-size:14.5px;line-height:1.5;opacity:.66}
+  .arrow{display:flex;align-items:center;gap:7px;margin:9px 0;font-size:9.5px;
+    font-weight:800;letter-spacing:.5px;text-transform:uppercase;opacity:.5}
+  .arrow::before,.arrow::after{content:"";height:1px;background:currentColor;opacity:.35;flex:1}
+  .out{display:flex;align-items:flex-start;gap:10px}
+  .out .txt{font-size:19.5px;font-weight:700;line-height:1.5;flex:1}
+  .turn.A .out .txt{color:var(--aInk)} .turn.B .out .txt{color:var(--bInk)}
+  .replay{border:none;background:rgba(255,255,255,.75);width:34px;height:34px;border-radius:11px;
+    cursor:pointer;font-size:15px;flex:0 0 auto;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+  .replay:active{transform:scale(.92)}
   .rtl{direction:rtl;text-align:right}
 
-  /* ---------- mic panels ---------- */
-  footer{background:#fff;border-top:1px solid var(--line);padding:12px 14px calc(12px + env(safe-area-inset-bottom))}
+  /* ============ mics ============ */
+  footer{background:#fff;border-top:1px solid var(--line);
+    padding:13px 15px calc(13px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 24px rgba(60,30,140,.06)}
   .mics{display:flex;gap:11px}
-  .mic{flex:1;border:2px solid transparent;border-radius:17px;padding:13px 8px;cursor:pointer;
-    color:#fff;display:flex;flex-direction:column;align-items:center;gap:3px;transition:transform .12s}
+  .mic{flex:1;border:none;border-radius:19px;padding:14px 8px 12px;cursor:pointer;color:#fff;
+    display:flex;flex-direction:column;align-items:center;gap:5px;transition:transform .13s;position:relative}
   .mic:active{transform:scale(.97)}
-  .mic .flag{font-size:21px;line-height:1}
-  .mic .nm{font-weight:800;font-size:15px}
-  .mic .sub{font-size:10.5px;opacity:.92;font-weight:600}
-  .mic.A{background:linear-gradient(135deg,#6366f1,#4f46e5)}
-  .mic.B{background:linear-gradient(135deg,#14b8a6,#0d9488)}
-  .mic.armed{outline:3px solid #fde68a;outline-offset:1px}
-  .mic.on{background:linear-gradient(135deg,#ef4444,#f97316);animation:mp 1.25s infinite}
-  @keyframes mp{0%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}70%{box-shadow:0 0 0 15px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
-  .mic:disabled{opacity:.45;cursor:default}
-  .ctrls{display:flex;gap:7px;margin-top:11px}
-  .btn{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 4px;
-    font-weight:800;font-size:12.5px;cursor:pointer;color:var(--ink)}
-  .btn.primary{background:linear-gradient(135deg,#6d28d9,#4f46e5);color:#fff;border:none}
-  .btn.stop{color:var(--danger)}
-  .btn:disabled{opacity:.4}
-  .more{display:flex;justify-content:center;gap:15px;margin-top:10px;font-size:12px}
-  .lnk{border:none;background:none;color:var(--a);font-weight:700;cursor:pointer;text-decoration:underline;font-size:12px}
-  .ver{text-align:center;font-size:10.5px;color:#a3a7b3;margin-top:7px}
+  .mic .ring{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.22);
+    display:grid;place-items:center;font-size:19px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
+  .mic .nm{font-weight:800;font-size:15.5px;line-height:1.1}
+  .mic .sub{font-size:10.5px;opacity:.9;font-weight:600}
+  .mic.A{background:linear-gradient(135deg,var(--a1),var(--a2));box-shadow:0 8px 20px rgba(67,56,202,.34)}
+  .mic.B{background:linear-gradient(135deg,var(--b1),var(--b2));box-shadow:0 8px 20px rgba(13,148,136,.34)}
+  .mic.armed::after{content:"YOUR TURN";position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+    background:#fbbf24;color:#78350f;font-size:8.5px;font-weight:800;letter-spacing:.5px;
+    padding:3px 9px;border-radius:20px;box-shadow:0 2px 6px rgba(0,0,0,.16)}
+  .mic.on{background:linear-gradient(135deg,#f43f5e,#f97316);animation:mp 1.25s infinite}
+  @keyframes mp{0%{box-shadow:0 0 0 0 rgba(244,63,94,.5)}70%{box-shadow:0 0 0 14px rgba(244,63,94,0)}100%{box-shadow:0 0 0 0 rgba(244,63,94,0)}}
+  .mic:disabled{opacity:.42;cursor:default}
 
-  /* ---------- sheet ---------- */
-  .sheet{position:absolute;inset:0;background:rgba(17,15,40,.72);display:none;place-items:center;padding:18px;z-index:40}
+  .ctrls{display:flex;gap:8px;margin-top:12px}
+  .btn{flex:1;border:1px solid var(--line);background:#fff;border-radius:13px;padding:12px 4px;
+    font-weight:800;font-size:13px;cursor:pointer;color:var(--ink);white-space:nowrap}
+  .btn:active{background:var(--soft)}
+  .btn.primary{background:linear-gradient(135deg,#4f46e5,#6d28d9);color:#fff;border:none;
+    box-shadow:0 6px 16px rgba(79,70,229,.3)}
+  .btn.stop{color:var(--danger)}
+  .btn:disabled{opacity:.38}
+  .more{display:flex;justify-content:center;gap:6px;margin-top:11px}
+  .lnk{border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 13px;
+    color:var(--muted);font-weight:700;cursor:pointer;font-size:11.5px}
+  .lnk:active{background:var(--soft)}
+  .ver{text-align:center;font-size:10px;color:#adb1c2;margin-top:8px}
+
+  /* ============ sheet ============ */
+  .sheet{position:absolute;inset:0;background:rgba(20,16,48,.7);display:none;place-items:end center;
+    padding:0;z-index:40}
   .sheet.show{display:grid}
-  .panel{background:#fff;border-radius:20px;padding:20px;width:100%;max-width:400px;max-height:92%;overflow:auto}
-  .panel h2{margin:0 0 4px;font-size:18px}
-  .panel p{margin:0 0 14px;color:var(--muted);font-size:12.5px;line-height:1.55}
-  .rowc{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px;font-size:13.5px;font-weight:700}
-  .rowc input[type=range]{flex:1;accent-color:var(--a)}
-  .rowc .val{min-width:38px;text-align:right;color:var(--muted);font-weight:700}
-  .seg{display:flex;gap:6px;background:#f1f0fa;padding:4px;border-radius:12px}
-  .seg button{flex:1;border:none;background:none;padding:9px;border-radius:9px;font-weight:800;font-size:12.5px;cursor:pointer;color:var(--muted)}
-  .seg button.on{background:#fff;color:var(--a);box-shadow:0 2px 6px rgba(0,0,0,.1)}
-  .close{width:100%;border:none;border-radius:13px;padding:13px;font-weight:800;color:#fff;
-    background:linear-gradient(135deg,#6d28d9,#4f46e5);cursor:pointer;font-size:14.5px;margin-top:6px}
+  .panel{background:#fff;border-radius:24px 24px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));
+    width:100%;max-width:520px;max-height:88%;overflow:auto;animation:up .22s ease}
+  @keyframes up{from{transform:translateY(24px)}to{transform:none}}
+  .grab{width:38px;height:4px;border-radius:4px;background:#e2e0f0;margin:0 auto 14px}
+  .panel h2{margin:0 0 4px;font-size:18px;font-weight:800}
+  .panel p{margin:0 0 16px;color:var(--muted);font-size:12.5px;line-height:1.6}
+  .rowc{display:flex;align-items:center;justify-content:space-between;gap:11px;margin-bottom:15px;
+    font-size:13.5px;font-weight:700}
+  .rowc input[type=range]{flex:1;accent-color:var(--a1)}
+  .rowc .val{min-width:42px;text-align:right;color:var(--muted);font-weight:700;font-size:12.5px}
+  .seg{display:flex;gap:5px;background:var(--soft);padding:4px;border-radius:13px;margin-bottom:16px}
+  .seg button{flex:1;border:none;background:none;padding:10px;border-radius:10px;font-weight:800;
+    font-size:12.5px;cursor:pointer;color:var(--muted)}
+  .seg button.on{background:#fff;color:var(--a2);box-shadow:0 2px 7px rgba(0,0,0,.09)}
+  .close{width:100%;border:none;border-radius:14px;padding:14px;font-weight:800;color:#fff;
+    background:linear-gradient(135deg,#4f46e5,#6d28d9);cursor:pointer;font-size:14.5px;margin-top:4px}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="brand"><span class="dot">🎙️</span>
-      <div>VoiceBridge<small>Live two-person voice interpreter</small></div></div>
+    <div class="brand">
+      <span class="logo">🎙️</span>
+      <div><b>VoiceBridge</b><span>Live interpreter for two people</span></div>
+    </div>
     <div class="pair">
-      <div class="pk A"><label>Person A speaks</label><select id="selA"></select></div>
+      <div class="side A">
+        <div class="cap"><span class="av">A</span><span>Speaks</span></div>
+        <select id="selA"></select>
+      </div>
       <button class="swapb" id="swap" title="Swap languages">⇄</button>
-      <div class="pk B"><label>Person B speaks</label><select id="selB"></select></div>
+      <div class="side B">
+        <div class="cap"><span class="av">B</span><span>Speaks</span></div>
+        <select id="selB"></select>
+      </div>
     </div>
   </header>
 
-  <div class="state" id="stateBar">
-    <span class="orb"></span><span id="stateTxt">Ready — press Start conversation</span>
-    <span class="lvl"><i id="lvl"></i></span>
+  <div class="status" id="statusBar">
+    <span class="orb"></span>
+    <span class="stxt" id="stateTxt">Ready — press Start conversation</span>
+    <span class="bars" id="bars"><i></i><i></i><i></i><i></i><i></i></span>
   </div>
 
   <main id="convo">
     <div class="note warn" id="compat" style="display:none"></div>
     <div class="welcome" id="welcome">
-      <div class="big">🗣️↔️🗣️</div>
-      <h3>Live interpreter</h3>
-      <p>Press <b>Start conversation</b>. Person A speaks, the app says it in Person B's language, then listens for the reply — automatically, back and forth.</p>
+      <div class="ico">💬</div>
+      <h3>Talk naturally, in two languages</h3>
+      <p>Press <b>Start conversation</b>. Speak in your language — the other person hears it in theirs, then it listens for their reply automatically.</p>
+      <div class="steps">
+        <span class="chip">🎤 Speak</span>
+        <span class="chip">✨ Translate</span>
+        <span class="chip">🔊 Hear</span>
+        <span class="chip">🔄 Reply</span>
+      </div>
     </div>
   </main>
 
   <footer>
     <div class="mics">
       <button class="mic A" id="micA">
-        <span class="flag" id="flagA">🇵🇰</span>
+        <span class="ring">🎤</span>
         <span class="nm" id="nameA">Urdu</span>
-        <span class="sub">Person A · tap to speak</span>
+        <span class="sub">Person A</span>
       </button>
       <button class="mic B" id="micB">
-        <span class="flag" id="flagB">🇸🇦</span>
+        <span class="ring">🎤</span>
         <span class="nm" id="nameB">Arabic</span>
-        <span class="sub">Person B · tap to speak</span>
+        <span class="sub">Person B</span>
       </button>
     </div>
     <div class="ctrls">
-      <button class="btn primary" id="startBtn">▶ Start conversation</button>
+      <button class="btn primary" id="startBtn">▶ Start</button>
       <button class="btn" id="pauseBtn" disabled>⏸ Pause</button>
       <button class="btn stop" id="stopBtn" disabled>■ Stop</button>
     </div>
@@ -170,7 +234,7 @@
       <button class="lnk" id="clearBtn">🗑 Clear</button>
       <button class="lnk" id="privacyBtn">🔒 Privacy</button>
     </div>
-    <div class="ver" id="ver">v1.0 · interpreter</div>
+    <div class="ver">v2.1 · live interpreter</div>
   </footer>
 
   <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
@@ -179,146 +243,123 @@
 <script>
 /* =====================================================================
    VoiceBridge — live two-person voice interpreter
-   Modules:  Recognizer -> Translator -> Voice -> Conversation controller
-   Each service is isolated behind a small interface so the provider can
-   be swapped (e.g. pointed at a self-hosted backend) without touching
-   the conversation logic.
+   Recognizer -> Translator -> Voice -> Conversation controller
+   Each service sits behind a small interface so a provider can be
+   swapped without touching the conversation logic.
    ===================================================================== */
 
-/* ------------------------------ languages ------------------------------ */
 const LANGS=[
-  {c:"ur",n:"Urdu",     stt:"ur-PK", flag:"🇵🇰", rtl:true},
-  {c:"ar",n:"Arabic",   stt:"ar-SA", flag:"🇸🇦", rtl:true},
-  {c:"en",n:"English",  stt:"en-US", flag:"🇬🇧"},
-  {c:"es",n:"Spanish",  stt:"es-ES", flag:"🇪🇸"},
-  {c:"fr",n:"French",   stt:"fr-FR", flag:"🇫🇷"},
-  {c:"de",n:"German",   stt:"de-DE", flag:"🇩🇪"},
-  {c:"it",n:"Italian",  stt:"it-IT", flag:"🇮🇹"},
-  {c:"pt",n:"Portuguese",stt:"pt-PT",flag:"🇵🇹"},
-  {c:"nl",n:"Dutch",    stt:"nl-NL", flag:"🇳🇱"},
-  {c:"ru",n:"Russian",  stt:"ru-RU", flag:"🇷🇺"},
-  {c:"hi",n:"Hindi",    stt:"hi-IN", flag:"🇮🇳"},
-  {c:"bn",n:"Bengali",  stt:"bn-BD", flag:"🇧🇩"},
-  {c:"zh",n:"Chinese",  stt:"zh-CN", flag:"🇨🇳"},
-  {c:"ja",n:"Japanese", stt:"ja-JP", flag:"🇯🇵"},
-  {c:"ko",n:"Korean",   stt:"ko-KR", flag:"🇰🇷"},
-  {c:"tr",n:"Turkish",  stt:"tr-TR", flag:"🇹🇷"},
-  {c:"id",n:"Indonesian",stt:"id-ID",flag:"🇮🇩"},
-  {c:"pl",n:"Polish",   stt:"pl-PL", flag:"🇵🇱"},
-  {c:"uk",n:"Ukrainian",stt:"uk-UA", flag:"🇺🇦"},
-  {c:"vi",n:"Vietnamese",stt:"vi-VN",flag:"🇻🇳"},
-  {c:"th",n:"Thai",     stt:"th-TH", flag:"🇹🇭"},
+  {c:"ur",n:"Urdu",      stt:"ur-PK", rtl:true},
+  {c:"ar",n:"Arabic",    stt:"ar-SA", rtl:true},
+  {c:"en",n:"English",   stt:"en-US"},
+  {c:"es",n:"Spanish",   stt:"es-ES"},
+  {c:"fr",n:"French",    stt:"fr-FR"},
+  {c:"de",n:"German",    stt:"de-DE"},
+  {c:"it",n:"Italian",   stt:"it-IT"},
+  {c:"pt",n:"Portuguese",stt:"pt-PT"},
+  {c:"nl",n:"Dutch",     stt:"nl-NL"},
+  {c:"ru",n:"Russian",   stt:"ru-RU"},
+  {c:"hi",n:"Hindi",     stt:"hi-IN"},
+  {c:"bn",n:"Bengali",   stt:"bn-BD"},
+  {c:"zh",n:"Chinese",   stt:"zh-CN"},
+  {c:"ja",n:"Japanese",  stt:"ja-JP"},
+  {c:"ko",n:"Korean",    stt:"ko-KR"},
+  {c:"tr",n:"Turkish",   stt:"tr-TR"},
+  {c:"id",n:"Indonesian",stt:"id-ID"},
+  {c:"pl",n:"Polish",    stt:"pl-PL"},
+  {c:"uk",n:"Ukrainian", stt:"uk-UA"},
+  {c:"vi",n:"Vietnamese",stt:"vi-VN"},
+  {c:"th",n:"Thai",      stt:"th-TH"},
 ];
 const L=c=>LANGS.find(x=>x.c===c)||LANGS[0];
 const $=id=>document.getElementById(id);
 
-/* ------------------------------ settings ------------------------------ */
-const CFG={
-  a:"ur", b:"ar",
-  auto:true,          // automatic speaker switching
-  rate:1, volume:1, muted:false,
-  minChars:2, silenceMs:1200,
-};
-try{
-  const s=JSON.parse(localStorage.getItem("vb_cfg")||"{}");
-  Object.assign(CFG,s);
-}catch(_){}
+const CFG={a:"ur",b:"ar",auto:true,rate:1,volume:1,muted:false,minChars:2,switchMs:450};
+try{ Object.assign(CFG,JSON.parse(localStorage.getItem("vb_cfg")||"{}")); }catch(_){}
 const saveCfg=()=>{ try{ localStorage.setItem("vb_cfg",JSON.stringify(CFG)); }catch(_){} };
 
-/* =========================== Translation service ===========================
-   Abstraction layer: providers are tried in order until one succeeds.
-   Add a self-hosted provider here to drop the public ones entirely.        */
+/* ------------------------- Translation service ------------------------- */
 const Translator=(()=>{
-  const withTimeout=async(url,ms)=>{
+  const fetchT=async(url,ms)=>{
     const c=new AbortController(); const t=setTimeout(()=>c.abort(),ms);
     try{ const r=await fetch(url,{signal:c.signal}); clearTimeout(t); return r; }
     catch(e){ clearTimeout(t); throw e; }
   };
   const providers=[
-    { name:"primary", async run(text,from,to){
-        const u="https://translate.googleapis.com/translate_a/single?client=gtx&sl="+
-          encodeURIComponent(from)+"&tl="+encodeURIComponent(to)+"&dt=t&q="+encodeURIComponent(text);
-        const r=await withTimeout(u,8000); if(!r.ok) throw new Error("HTTP "+r.status);
-        const d=await r.json();
-        if(!Array.isArray(d)||!Array.isArray(d[0])) throw new Error("bad shape");
-        const out=d[0].map(s=>(s&&s[0])?s[0]:"").join("").trim();
-        if(!out) throw new Error("empty"); return out;
-      }},
-    { name:"backup", async run(text,from,to){
-        const u="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+
-          "&langpair="+encodeURIComponent(from)+"|"+encodeURIComponent(to);
-        const r=await withTimeout(u,8000); if(!r.ok) throw new Error("HTTP "+r.status);
-        const d=await r.json();
-        const out=(d.responseData&&d.responseData.translatedText||"").trim();
-        if(!out) throw new Error("empty"); return out;
-      }},
+    {name:"primary",async run(text,from,to){
+      const u="https://translate.googleapis.com/translate_a/single?client=gtx&sl="+
+        encodeURIComponent(from)+"&tl="+encodeURIComponent(to)+"&dt=t&q="+encodeURIComponent(text);
+      const r=await fetchT(u,8000); if(!r.ok) throw new Error("HTTP "+r.status);
+      const d=await r.json();
+      if(!Array.isArray(d)||!Array.isArray(d[0])) throw new Error("shape");
+      const out=d[0].map(s=>(s&&s[0])?s[0]:"").join("").trim();
+      if(!out) throw new Error("empty"); return out;
+    }},
+    {name:"backup",async run(text,from,to){
+      const u="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+
+        "&langpair="+encodeURIComponent(from)+"|"+encodeURIComponent(to);
+      const r=await fetchT(u,8000); if(!r.ok) throw new Error("HTTP "+r.status);
+      const d=await r.json();
+      const out=((d.responseData&&d.responseData.translatedText)||"").trim();
+      if(!out) throw new Error("empty"); return out;
+    }},
   ];
-  return { async translate(text,from,to){
-      if(from===to) return text;
-      let last=null;
-      for(const p of providers){
-        try{ return await p.run(text,from,to); }catch(e){ last=e; }
-      }
-      throw last||new Error("all providers failed");
+  return {async translate(text,from,to){
+    if(from===to) return text;
+    let last=null;
+    for(const p of providers){ try{ return await p.run(text,from,to); }catch(e){ last=e; } }
+    throw last||new Error("all providers failed");
   }};
 })();
 
-/* ============================== Voice service ==============================
-   Speaks text. Prefers the most natural on-device voice; falls back to an
-   online voice when the device has none (e.g. Urdu on most phones).
-   Reports true completion so the controller knows when it is safe to
-   re-open the microphone (echo prevention).                                */
+/* ---------------------------- Voice service ---------------------------- */
 const Voice=(()=>{
   let current=null, primed=false;
   const stopAudio=()=>{ try{ if(current){ current.onended=null; current.onerror=null;
     current.pause(); current.src=""; current=null; } }catch(_){} };
-
-  const prime=()=>{                       // must run inside a user gesture
+  const prime=()=>{
     if(primed) return; primed=true;
     if("speechSynthesis" in window){
       try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(_){}
     }
-    try{ const a=new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
-      a.play().catch(()=>{}); }catch(_){}
+    try{ new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=").play().catch(()=>{}); }catch(_){}
   };
-  const score=v=>{ const n=(v.name||"").toLowerCase(); let s=0;
+  const score=v=>{const n=(v.name||"").toLowerCase();let s=0;
     if(/natural|neural|enhanced|premium|wavenet|siri/.test(n))s+=8;
-    if(/google/.test(n))s+=5; if(/microsoft/.test(n))s+=2; if(!v.localService)s+=1; return s; };
+    if(/google/.test(n))s+=5; if(/microsoft/.test(n))s+=2; if(!v.localService)s+=1; return s;};
   const pick=code=>{
     if(!("speechSynthesis" in window)) return null;
     const vs=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith(code));
     if(!vs.length) return null;
     vs.sort((x,y)=>score(y)-score(x)); return vs[0];
   };
-  if("speechSynthesis" in window){
-    speechSynthesis.getVoices();
-    speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();
-  }
+  if("speechSynthesis" in window){ speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices(); }
 
   const online=(text,code,done)=>{
-    let fin=false, wd=null;
+    let fin=false,wd=null;
     const end=()=>{ if(fin)return; fin=true; if(wd)clearTimeout(wd); stopAudio(); done(); };
-    const s0=text.trim(); if(!s0){ end(); return; }
-    wd=setTimeout(end, Math.min(30000, 4000+s0.length*90));
+    const s0=(text||"").trim(); if(!s0){ end(); return; }
+    wd=setTimeout(end,Math.min(30000,4000+s0.length*90));
     const parts=[]; let s=s0;
     while(s.length>180){ let i=s.lastIndexOf(" ",180); if(i<=0)i=180; parts.push(s.slice(0,i)); s=s.slice(i).trim(); }
     if(s)parts.push(s);
     const tl=code==="zh"?"zh-CN":code; let i=0;
-    const urls=chunk=>{ const q=encodeURIComponent(chunk); return [
+    const list=chunk=>{const q=encodeURIComponent(chunk);return[
       "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+tl+"&q="+q,
-      "https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl="+tl+"&q="+q ]; };
+      "https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl="+tl+"&q="+q];};
     const play=chunk=>{
-      const list=urls(chunk); let k=0;
+      const urls=list(chunk); let k=0;
       const attempt=()=>{
-        if(fin) return;
-        if(k>=list.length){ end(); return; }
+        if(fin)return;
+        if(k>=urls.length){ end(); return; }
         stopAudio();
         try{
-          const a=new Audio(); a.src=list[k++]; a.playbackRate=CFG.rate;
-          a.volume=CFG.muted?0:CFG.volume; current=a;
+          const a=new Audio(); a.src=urls[k++];
+          a.playbackRate=CFG.rate; a.volume=CFG.muted?0:CFG.volume; current=a;
           a.onended=()=>{ if(i<parts.length) play(parts[i++]); else end(); };
           a.onerror=attempt;
-          const p=a.play(); if(p&&p.catch) p.catch(attempt);
+          const p=a.play(); if(p&&p.catch)p.catch(attempt);
         }catch(_){ attempt(); }
       }; attempt();
     };
@@ -327,17 +368,16 @@ const Voice=(()=>{
 
   return {
     prime, stop(){ try{ speechSynthesis.cancel(); }catch(_){} stopAudio(); },
-    /** speak(text, langCode) -> Promise that resolves when audio truly finished */
     speak(text,code){
       return new Promise(resolve=>{
-        if(!text || CFG.muted){ resolve(); return; }
-        let done=false, wd=null, keep=null;
+        if(!text||CFG.muted){ resolve(); return; }
+        let done=false,wd=null,keep=null;
         const fin=()=>{ if(done)return; done=true; if(wd)clearTimeout(wd); if(keep)clearInterval(keep); resolve(); };
         const words=text.trim().split(/\s+/).length;
-        wd=setTimeout(fin, Math.min(30000, 2500+words*600+text.length*25));
+        wd=setTimeout(fin,Math.min(30000,2500+words*600+text.length*25));
         const v=pick(code);
-        if(v && "speechSynthesis" in window){
-          let started=false, bailed=false;
+        if(v&&"speechSynthesis" in window){
+          let started=false,bailed=false;
           const toOnline=()=>{ if(done||bailed)return; bailed=true;
             if(wd)clearTimeout(wd); if(keep)clearInterval(keep);
             try{ speechSynthesis.cancel(); }catch(_){}
@@ -345,7 +385,7 @@ const Voice=(()=>{
           try{
             const u=new SpeechSynthesisUtterance(text);
             u.lang=L(code).stt; u.voice=v; u.rate=CFG.rate; u.pitch=1.02; u.volume=CFG.volume;
-            u.onstart=()=>{ started=true; };
+            u.onstart=()=>{started=true;};
             u.onend=()=>{ if(!bailed) fin(); };
             u.onerror=e=>{ if(bailed)return;
               if(e.error&&e.error!=="interrupted"&&e.error!=="canceled") toOnline(); else fin(); };
@@ -355,40 +395,31 @@ const Voice=(()=>{
               if(!started&&!sp) toOnline(); },1100);
             keep=setInterval(()=>{ try{ if(speechSynthesis.speaking) speechSynthesis.resume(); }catch(_){} },5000);
           }catch(_){ toOnline(); }
-        } else {
-          online(text,code,fin);
-        }
+        } else online(text,code,fin);
       });
     }
   };
 })();
 
-/* ============================ Recognizer service ===========================
-   Wraps the browser speech engine. The controller owns the lifecycle so the
-   microphone can be fully released before any audio plays.                  */
+/* -------------------------- Recognizer service -------------------------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const Recognizer=(()=>{
   let rec=null;
-  const release=()=>{                    // full teardown, not just stop()
+  const release=()=>{
     if(!rec) return;
-    try{ rec.onresult=rec.onerror=rec.onend=rec.onstart=rec.onspeechend=null; }catch(_){}
+    try{ rec.onresult=rec.onerror=rec.onend=rec.onstart=null; }catch(_){}
     try{ rec.abort&&rec.abort(); }catch(_){}
     try{ rec.stop&&rec.stop(); }catch(_){}
     rec=null;
   };
   return {
-    release, get active(){ return !!rec; },
-    /**
-     * listen({lang, onPartial, onFinal, onError, onSilence})
-     * Resolves nothing; the controller reacts through callbacks.
-     */
+    release,
     listen(o){
       release();
       if(!SR){ o.onError&&o.onError("unsupported"); return; }
-      const r=new SR();
-      rec=r;
+      const r=new SR(); rec=r;
       r.lang=o.lang; r.interimResults=true; r.continuous=false; r.maxAlternatives=1;
-      let got=false, heard=false;
+      let got=false,heard=false;
       r.onstart=()=>o.onStart&&o.onStart();
       r.onresult=e=>{
         let interim="",final="";
@@ -403,22 +434,19 @@ const Recognizer=(()=>{
       r.onerror=e=>{
         const err=e.error||"unknown";
         if(err==="not-allowed"||err==="service-not-allowed"){ release(); o.onError&&o.onError("mic-denied"); }
-        else if(err==="no-speech"){ /* handled in onend */ }
-        else if(err!=="aborted"){ o.onError&&o.onError(err); }
+        else if(err!=="no-speech"&&err!=="aborted"){ o.onError&&o.onError(err); }
       };
-      r.onend=()=>{
-        if(rec===r) rec=null;
-        if(!got) o.onSilence&&o.onSilence(heard);
-      };
+      r.onend=()=>{ if(rec===r) rec=null; if(!got) o.onSilence&&o.onSilence(heard); };
       try{ r.start(); }
       catch(_){ setTimeout(()=>{ try{ r.start(); }catch(__){ o.onError&&o.onError("start-failed"); } },300); }
     }
   };
 })();
 
-/* ============================== Level meter =============================== */
+/* ------------------------------ level bars ------------------------------ */
 const Meter=(()=>{
-  let ctx=null, stream=null, raf=null;
+  let ctx=null,stream=null,raf=null;
+  const bars=()=>$("bars").querySelectorAll("i");
   return {
     async start(){
       if(ctx) return;
@@ -427,43 +455,38 @@ const Meter=(()=>{
         ctx=new (window.AudioContext||window.webkitAudioContext)();
         const src=ctx.createMediaStreamSource(stream);
         const an=ctx.createAnalyser(); an.fftSize=512; src.connect(an);
-        const buf=new Uint8Array(an.frequencyBinCount);
-        const tick=()=>{ if(!ctx) return;
+        const buf=new Uint8Array(an.frequencyBinCount); const B=bars();
+        const tick=()=>{ if(!ctx)return;
           an.getByteTimeDomainData(buf);
-          let sum=0; for(let i=0;i<buf.length;i++){ const v=(buf[i]-128)/128; sum+=v*v; }
-          $("lvl").style.width=Math.min(100,Math.sqrt(sum/buf.length)*300)+"%";
+          let sum=0; for(let i=0;i<buf.length;i++){const v=(buf[i]-128)/128; sum+=v*v;}
+          const rms=Math.sqrt(sum/buf.length);
+          B.forEach((b,i)=>{ const f=[0.7,1,1.3,1,0.7][i];
+            b.style.height=Math.max(3,Math.min(16,rms*150*f))+"px"; });
           raf=requestAnimationFrame(tick); };
         tick();
       }catch(_){}
     },
     stop(){
-      if(raf) cancelAnimationFrame(raf); raf=null;
-      try{ if(ctx) ctx.close(); }catch(_){} ctx=null;
-      try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch(_){} stream=null;
-      const el=$("lvl"); if(el) el.style.width="0%";
+      if(raf)cancelAnimationFrame(raf); raf=null;
+      try{ if(ctx)ctx.close(); }catch(_){} ctx=null;
+      try{ if(stream)stream.getTracks().forEach(t=>t.stop()); }catch(_){} stream=null;
+      bars().forEach(b=>b.style.height="3px");
     }
   };
 })();
 
-/* ========================== Conversation controller ========================
-   State machine — the heart of the interpreter.
-   idle -> listening -> processing -> translating -> speaking -> (switch) ...
-   While SPEAKING the microphone is fully released, which is what prevents
-   the app from hearing and re-translating its own voice.                    */
+/* ------------------------ conversation controller ------------------------ */
 const ST={IDLE:"idle",LISTENING:"listening",PROCESSING:"processing",
   TRANSLATING:"translating",SPEAKING:"speaking",PAUSED:"paused",ERROR:"error"};
 
 const Convo=(()=>{
-  let state=ST.IDLE, running=false, side="A", turnSeq=0, liveEl=null;
-  const history=[];                       // short-term context (see note in Settings)
-
+  let state=ST.IDLE, running=false, side="A", seqNo=0, liveEl=null;
   const langOf=s=>s==="A"?CFG.a:CFG.b;
-  const otherOf=s=>s==="A"?"B":"A";
+  const other=s=>s==="A"?"B":"A";
 
   function setState(s,msg){
     state=s;
-    const bar=$("stateBar");
-    bar.className="state "+(s===ST.ERROR?"error":s);
+    $("statusBar").className="status "+(s===ST.ERROR?"error":s);
     $("stateTxt").textContent=msg;
   }
   function armUI(){
@@ -472,232 +495,196 @@ const Convo=(()=>{
     $("micA").classList.toggle("on",running&&side==="A"&&state===ST.LISTENING);
     $("micB").classList.toggle("on",running&&side==="B"&&state===ST.LISTENING);
     $("startBtn").disabled=running;
-    $("pauseBtn").disabled=!running;
+    $("pauseBtn").disabled=!running&&state!==ST.PAUSED;
     $("stopBtn").disabled=!running&&state===ST.IDLE;
-    $("pauseBtn").textContent=(state===ST.PAUSED)?"▶ Resume":"⏸ Pause";
+    $("pauseBtn").textContent=state===ST.PAUSED?"▶ Resume":"⏸ Pause";
   }
 
-  /* ---- one listening turn ---- */
   function listen(which){
     if(!running) return;
-    side=which; turnSeq++;
-    const seq=turnSeq, lang=langOf(which);
-    setState(ST.LISTENING,"Listening to "+L(lang).n+"…");
+    side=which; seqNo++;
+    const seq=seqNo, lang=langOf(which);
+    setState(ST.LISTENING,"Listening — "+L(lang).n);
     armUI(); Meter.start();
     Recognizer.listen({
       lang:L(lang).stt,
-      onStart(){ if(seq===turnSeq) armUI(); },
+      onStart(){ if(seq===seqNo) armUI(); },
       onPartial(text){
-        if(seq!==turnSeq) return;
-        if(!liveEl) liveEl=UI.addTurn(which,text,"…",langOf(otherOf(which)),true);
-        else UI.updateSaid(liveEl,text);
+        if(seq!==seqNo) return;
+        if(!liveEl) liveEl=UI.addTurn(which,text,"…",langOf(other(which)));
+        else UI.setSaid(liveEl,text);
       },
-      onFinal(text){ if(seq===turnSeq) process(which,text,seq); },
+      onFinal(text){ if(seq===seqNo) process(which,text,seq); },
       onError(err){
-        if(seq!==turnSeq) return;
-        if(err==="mic-denied"){ stop(); setState(ST.ERROR,"Microphone blocked — allow it in your browser settings"); armUI(); return; }
+        if(seq!==seqNo) return;
+        if(err==="mic-denied"){ stop(); setState(ST.ERROR,"Microphone blocked — allow it in your browser"); armUI(); return; }
         if(err==="unsupported"){ stop(); setState(ST.ERROR,"Voice input needs Chrome or Edge"); armUI(); return; }
-        if(err==="network"){ setState(ST.ERROR,"Network problem — retrying…"); }
-        if(running) setTimeout(()=>{ if(running&&seq===turnSeq) listen(which); },700);
+        setState(ST.ERROR,"Connection problem — retrying…");
+        if(running) setTimeout(()=>{ if(running&&seq===seqNo) listen(which); },700);
       },
       onSilence(heard){
-        if(seq!==turnSeq||!running) return;
-        if(liveEl){ UI.removeTurn(liveEl); liveEl=null; }
-        if(!heard && CFG.auto){          // nothing said -> offer the turn to the other person
-          const nx=otherOf(which);
+        if(seq!==seqNo||!running) return;
+        if(liveEl){ UI.remove(liveEl); liveEl=null; }
+        if(!heard&&CFG.auto){
+          const nx=other(which);
           setState(ST.LISTENING,"Waiting — now "+L(langOf(nx)).n);
-          setTimeout(()=>{ if(running&&seq===turnSeq) listen(nx); },350);
-        } else {
-          setTimeout(()=>{ if(running&&seq===turnSeq) listen(which); },250);
+          setTimeout(()=>{ if(running&&seq===seqNo) listen(nx); },350);
+        }else{
+          setTimeout(()=>{ if(running&&seq===seqNo) listen(which); },250);
         }
       }
     });
   }
 
-  /* ---- transcript -> translation -> speech ---- */
   async function process(which,text,seq){
-    Recognizer.release(); Meter.stop();     // mic OFF before anything plays (echo guard)
-    const from=langOf(which), to=langOf(otherOf(which));
-    setState(ST.PROCESSING,"Understanding "+L(from).n+"…");
+    Recognizer.release(); Meter.stop();      // mic OFF before audio — echo guard
+    const from=langOf(which), to=langOf(other(which));
+    setState(ST.PROCESSING,"Understanding — "+L(from).n);
+    const el=liveEl||UI.addTurn(which,text,"…",to); liveEl=null;
+    UI.setSaid(el,text);
 
-    const el=liveEl||UI.addTurn(which,text,"…",to,true);
-    liveEl=null;
-    UI.updateSaid(el,text);
-
-    setState(ST.TRANSLATING,"Translating "+L(from).n+" → "+L(to).n+"…");
+    setState(ST.TRANSLATING,"Translating "+L(from).n+" → "+L(to).n);
     let out;
-    try{
-      out=await Translator.translate(text,from,to);
-    }catch(e){
-      UI.finishTurn(el,"(couldn't translate — please say that again)",to);
+    try{ out=await Translator.translate(text,from,to); }
+    catch(e){
+      UI.finish(el,"(couldn't translate — please say that again)",to);
       setState(ST.ERROR,"Translation failed — check your internet");
-      if(running && seq===turnSeq) setTimeout(()=>{ if(running) listen(which); },900);
+      if(running&&seq===seqNo) setTimeout(()=>{ if(running) listen(which); },900);
       return;
     }
-    if(seq!==turnSeq) return;               // superseded by a manual tap
-    UI.finishTurn(el,out,to);
-    history.push({side:which,from,to,said:text,out});
-    if(history.length>12) history.shift();
+    if(seq!==seqNo) return;
+    UI.finish(el,out,to);
 
-    setState(ST.SPEAKING,"Speaking "+L(to).n+"…");
+    setState(ST.SPEAKING,"Speaking — "+L(to).n);
     armUI();
-    await Voice.speak(out,to);              // mic stays closed for the whole playback
-    if(!running || seq!==turnSeq) return;
+    await Voice.speak(out,to);               // mic closed for the whole playback
+    if(!running||seq!==seqNo) return;
 
     if(CFG.auto){
-      const nx=otherOf(which);
-      setState(ST.LISTENING,"Now "+L(langOf(nx)).n+" — go ahead");
-      setTimeout(()=>{ if(running&&seq===turnSeq) listen(nx); },450);   // settle before re-opening mic
+      const nx=other(which);
+      setState(ST.LISTENING,"Your turn — "+L(langOf(nx)).n);
+      setTimeout(()=>{ if(running&&seq===seqNo) listen(nx); },CFG.switchMs);
     }else{
-      setState(ST.IDLE,"Tap a microphone to speak");
-      armUI();
+      setState(ST.IDLE,"Tap a microphone to speak"); armUI();
     }
   }
 
-  /* ---- public controls ---- */
-  function start(which){
-    Voice.prime();
-    running=true;
-    listen(which||side||"A");
-  }
-  function manualTap(which){
-    Voice.prime();
-    Voice.stop();
-    if(liveEl){ UI.removeTurn(liveEl); liveEl=null; }
-    running=true;
-    turnSeq++;                              // invalidate any in-flight turn
-    listen(which);
-  }
-  function pause(){
-    if(state===ST.PAUSED){ running=true; setState(ST.LISTENING,"Resuming…"); armUI(); listen(side); return; }
-    running=false; turnSeq++;
-    Recognizer.release(); Voice.stop(); Meter.stop();
-    if(liveEl){ UI.removeTurn(liveEl); liveEl=null; }
-    setState(ST.PAUSED,"Paused — press Resume to continue"); armUI();
-  }
-  function stop(){
-    running=false; turnSeq++;
-    Recognizer.release(); Voice.stop(); Meter.stop();
-    if(liveEl){ UI.removeTurn(liveEl); liveEl=null; }
-    setState(ST.IDLE,"Stopped — press Start conversation"); armUI();
-  }
-  return {start,manualTap,pause,stop,armUI,setState,
-    get state(){return state;}, get running(){return running;}, get side(){return side;},
-    get history(){return history;}};
+  return {
+    start(w){ Voice.prime(); running=true; listen(w||side||"A"); },
+    tap(w){ Voice.prime(); Voice.stop();
+      if(liveEl){ UI.remove(liveEl); liveEl=null; }
+      running=true; seqNo++; listen(w); },
+    pause(){
+      if(state===ST.PAUSED){ running=true; listen(side); return; }
+      running=false; seqNo++;
+      Recognizer.release(); Voice.stop(); Meter.stop();
+      if(liveEl){ UI.remove(liveEl); liveEl=null; }
+      setState(ST.PAUSED,"Paused — press Resume"); armUI();
+    },
+    stop(){
+      running=false; seqNo++;
+      Recognizer.release(); Voice.stop(); Meter.stop();
+      if(liveEl){ UI.remove(liveEl); liveEl=null; }
+      setState(ST.IDLE,"Stopped — press Start conversation"); armUI();
+    },
+    armUI,setState, get running(){return running;}
+  };
 })();
 
-/* ================================== UI ================================== */
+/* ---------------------------------- UI ---------------------------------- */
 const UI=(()=>{
-  function fillSelects(){
-    const opt=(sel,cur)=>LANGS.map(l=>`<option value="${l.c}" ${l.c===cur?"selected":""}>${l.flag} ${l.n}</option>`).join("");
-    $("selA").innerHTML=opt($("selA"),CFG.a);
-    $("selB").innerHTML=opt($("selB"),CFG.b);
-  }
-  function refreshLabels(){
-    const A=L(CFG.a),B=L(CFG.b);
-    $("flagA").textContent=A.flag; $("nameA").textContent=A.n;
-    $("flagB").textContent=B.flag; $("nameB").textContent=B.n;
-  }
-  function addTurn(which,said,out,outLang,live){
+  const opts=cur=>LANGS.map(l=>`<option value="${l.c}" ${l.c===cur?"selected":""}>${l.n}</option>`).join("");
+  function fill(){ $("selA").innerHTML=opts(CFG.a); $("selB").innerHTML=opts(CFG.b); }
+  function labels(){ $("nameA").textContent=L(CFG.a).n; $("nameB").textContent=L(CFG.b).n; }
+  function addTurn(which,said,out,outLang){
     $("welcome").style.display="none";
     const inLang=which==="A"?CFG.a:CFG.b;
     const w=document.createElement("div");
     w.className="turn "+which;
-    w.innerHTML=
-      '<div class="who"></div><div class="card">'+
-      '<div class="said"></div><div class="divider"></div>'+
+    w.innerHTML='<div class="who"><span class="av"></span><span class="lbl"></span></div>'+
+      '<div class="card"><div class="said"></div>'+
+      '<div class="arrow"><span></span></div>'+
       '<div class="out"><div class="txt"></div><button class="replay" title="Replay">🔊</button></div></div>';
-    w.querySelector(".who").textContent=(which==="A"?"👤 Person A · ":"🧑 Person B · ")+L(inLang).n;
-    const saidEl=w.querySelector(".said"), txtEl=w.querySelector(".txt");
-    saidEl.textContent=said; txtEl.textContent=out;
-    if(L(inLang).rtl) saidEl.classList.add("rtl");
-    if(L(outLang).rtl) txtEl.classList.add("rtl");
+    w.querySelector(".av").textContent=which;
+    w.querySelector(".lbl").textContent="Person "+which+" · "+L(inLang).n;
+    w.querySelector(".arrow span").textContent=L(outLang).n;
+    const s=w.querySelector(".said"), t=w.querySelector(".txt");
+    s.textContent=said; t.textContent=out;
+    if(L(inLang).rtl) s.classList.add("rtl");
+    if(L(outLang).rtl) t.classList.add("rtl");
     w.dataset.lang=outLang;
-    w.querySelector(".replay").onclick=()=>{
-      Voice.prime();
-      const t=w.querySelector(".txt").textContent;
-      if(t&&t!=="…") Voice.speak(t,w.dataset.lang);
-    };
-    $("convo").appendChild(w);
-    $("convo").scrollTop=$("convo").scrollHeight;
+    w.querySelector(".replay").onclick=()=>{ Voice.prime();
+      const v=w.querySelector(".txt").textContent;
+      if(v&&v!=="…") Voice.speak(v,w.dataset.lang); };
+    $("convo").appendChild(w); scroll();
     return w;
   }
-  const updateSaid=(el,text)=>{ el.querySelector(".said").textContent=text;
-    $("convo").scrollTop=$("convo").scrollHeight; };
-  const finishTurn=(el,out,outLang)=>{
-    const t=el.querySelector(".txt");
-    t.textContent=out; t.classList.toggle("rtl",!!L(outLang).rtl);
-    el.dataset.lang=outLang;
-    $("convo").scrollTop=$("convo").scrollHeight;
-  };
-  const removeTurn=el=>{ try{ el.remove(); }catch(_){} };
-  return {fillSelects,refreshLabels,addTurn,updateSaid,finishTurn,removeTurn};
+  const scroll=()=>{ $("convo").scrollTop=$("convo").scrollHeight; };
+  const setSaid=(el,t)=>{ el.querySelector(".said").textContent=t; scroll(); };
+  const finish=(el,out,lang)=>{ const t=el.querySelector(".txt");
+    t.textContent=out; t.classList.toggle("rtl",!!L(lang).rtl);
+    el.querySelector(".arrow span").textContent=L(lang).n;
+    el.dataset.lang=lang; scroll(); };
+  const remove=el=>{ try{ el.remove(); }catch(_){} };
+  return {fill,labels,addTurn,setSaid,finish,remove};
 })();
 
-/* ============================== wiring ============================== */
-UI.fillSelects(); UI.refreshLabels(); Convo.armUI();
-
+/* -------------------------------- wiring -------------------------------- */
+UI.fill(); UI.labels(); Convo.armUI();
 const secure=window.isSecureContext||location.protocol==="https:"||location.hostname==="localhost";
-if(!SR){
-  $("compat").style.display="block";
-  $("compat").innerHTML="⚠️ <b>Voice input needs Google Chrome or Edge</b> (Android or desktop). iPhone browsers don't support it.";
-}else if(!secure){
-  $("compat").style.display="block";
-  $("compat").innerHTML="⚠️ Open this page from an <b>https://</b> address — browsers block the microphone otherwise.";
-}
+if(!SR){ $("compat").style.display="block";
+  $("compat").innerHTML="⚠️ <b>Voice needs Chrome or Edge</b> (Android or computer). iPhone browsers don't support voice input."; }
+else if(!secure){ $("compat").style.display="block";
+  $("compat").innerHTML="⚠️ Open this page from an <b>https://</b> address, or the microphone stays blocked."; }
 
 $("startBtn").onclick=()=>Convo.start("A");
 $("pauseBtn").onclick=()=>Convo.pause();
 $("stopBtn").onclick=()=>Convo.stop();
-$("micA").onclick=()=>Convo.manualTap("A");
-$("micB").onclick=()=>Convo.manualTap("B");
+$("micA").onclick=()=>Convo.tap("A");
+$("micB").onclick=()=>Convo.tap("B");
 $("clearBtn").onclick=()=>{
   document.querySelectorAll(".turn").forEach(t=>t.remove());
   $("welcome").style.display="block";
-  Convo.setState(Convo.running?"listening":"idle",Convo.running?"Listening…":"Cleared — press Start conversation");
+  if(!Convo.running) Convo.setState("idle","Cleared — press Start conversation");
 };
-$("selA").onchange=e=>{ CFG.a=e.target.value; saveCfg(); UI.refreshLabels(); Convo.stop(); };
-$("selB").onchange=e=>{ CFG.b=e.target.value; saveCfg(); UI.refreshLabels(); Convo.stop(); };
+$("selA").onchange=e=>{ CFG.a=e.target.value; saveCfg(); UI.labels(); Convo.stop(); };
+$("selB").onchange=e=>{ CFG.b=e.target.value; saveCfg(); UI.labels(); Convo.stop(); };
 $("swap").onclick=()=>{ const t=CFG.a; CFG.a=CFG.b; CFG.b=t;
-  $("selA").value=CFG.a; $("selB").value=CFG.b; saveCfg(); UI.refreshLabels(); Convo.stop(); };
+  $("selA").value=CFG.a; $("selB").value=CFG.b; saveCfg(); UI.labels(); Convo.stop(); };
 
-/* ---- sheets ---- */
-function openSheet(html,after){
-  $("panel").innerHTML=html; $("sheet").classList.add("show");
+function sheet(html,after){
+  $("panel").innerHTML='<div class="grab"></div>'+html;
+  $("sheet").classList.add("show");
   $("panel").querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>$("sheet").classList.remove("show"));
+  $("sheet").onclick=e=>{ if(e.target===$("sheet")) $("sheet").classList.remove("show"); };
   after&&after();
 }
-$("settingsBtn").onclick=()=>openSheet(`
-  <h2>Settings</h2>
-  <p>Tune how the interpreter listens and speaks.</p>
-  <div class="rowc"><span>Speaker switching</span></div>
-  <div class="seg" style="margin-bottom:14px">
-    <button id="segAuto" class="${CFG.auto?"on":""}">Automatic</button>
+$("settingsBtn").onclick=()=>sheet(`
+  <h2>Settings</h2><p>Tune how the interpreter listens and speaks.</p>
+  <div class="seg">
+    <button id="segAuto" class="${CFG.auto?"on":""}">Automatic turns</button>
     <button id="segMan" class="${CFG.auto?"":"on"}">Manual mic</button>
   </div>
   <div class="rowc"><span>Voice speed</span><input type="range" id="rate" min="0.6" max="1.4" step="0.05" value="${CFG.rate}"><span class="val" id="rateV">${CFG.rate.toFixed(2)}×</span></div>
   <div class="rowc"><span>Volume</span><input type="range" id="vol" min="0" max="1" step="0.05" value="${CFG.volume}"><span class="val" id="volV">${Math.round(CFG.volume*100)}%</span></div>
-  <div class="rowc"><span>Mute voice</span><input type="checkbox" id="mute" ${CFG.muted?"checked":""} style="width:20px;height:20px;accent-color:var(--a)"></div>
-  <div class="rowc"><span>Pause before switching</span><input type="range" id="sil" min="600" max="2500" step="100" value="${CFG.silenceMs}"><span class="val" id="silV">${(CFG.silenceMs/1000).toFixed(1)}s</span></div>
-  <button class="close" data-close>Done</button>
-`,()=>{
-  $("segAuto").onclick=()=>{ CFG.auto=true; saveCfg(); $("segAuto").classList.add("on"); $("segMan").classList.remove("on"); };
-  $("segMan").onclick=()=>{ CFG.auto=false; saveCfg(); $("segMan").classList.add("on"); $("segAuto").classList.remove("on"); };
-  $("rate").oninput=e=>{ CFG.rate=parseFloat(e.target.value); $("rateV").textContent=CFG.rate.toFixed(2)+"×"; saveCfg(); };
-  $("vol").oninput=e=>{ CFG.volume=parseFloat(e.target.value); $("volV").textContent=Math.round(CFG.volume*100)+"%"; saveCfg(); };
-  $("mute").onchange=e=>{ CFG.muted=e.target.checked; saveCfg(); if(CFG.muted) Voice.stop(); };
-  $("sil").oninput=e=>{ CFG.silenceMs=parseInt(e.target.value,10); $("silV").textContent=(CFG.silenceMs/1000).toFixed(1)+"s"; saveCfg(); };
+  <div class="rowc"><span>Mute voice</span><input type="checkbox" id="mute" ${CFG.muted?"checked":""} style="width:20px;height:20px;accent-color:var(--a1)"></div>
+  <div class="rowc"><span>Pause before switching</span><input type="range" id="sw" min="200" max="1500" step="50" value="${CFG.switchMs}"><span class="val" id="swV">${(CFG.switchMs/1000).toFixed(2)}s</span></div>
+  <button class="close" data-close>Done</button>`,()=>{
+  $("segAuto").onclick=()=>{CFG.auto=true;saveCfg();$("segAuto").classList.add("on");$("segMan").classList.remove("on");};
+  $("segMan").onclick=()=>{CFG.auto=false;saveCfg();$("segMan").classList.add("on");$("segAuto").classList.remove("on");};
+  $("rate").oninput=e=>{CFG.rate=parseFloat(e.target.value);$("rateV").textContent=CFG.rate.toFixed(2)+"×";saveCfg();};
+  $("vol").oninput=e=>{CFG.volume=parseFloat(e.target.value);$("volV").textContent=Math.round(CFG.volume*100)+"%";saveCfg();};
+  $("mute").onchange=e=>{CFG.muted=e.target.checked;saveCfg();if(CFG.muted)Voice.stop();};
+  $("sw").oninput=e=>{CFG.switchMs=parseInt(e.target.value,10);$("swV").textContent=(CFG.switchMs/1000).toFixed(2)+"s";saveCfg();};
 });
-$("privacyBtn").onclick=()=>openSheet(`
-  <h2>Privacy</h2>
-  <p>What this app does and does not keep.</p>
-  <div class="note info" style="margin-bottom:12px">
-    <b>Not stored:</b> your voice is never recorded or saved. The conversation on screen lives only in this browser tab and disappears when you close or clear it.<br><br>
-    <b>Stored on this device only:</b> your chosen languages and voice settings.<br><br>
-    <b>Sent over the internet:</b> to translate and speak, the recognised text is sent to the translation and voice services. Avoid speaking passwords, card numbers or other sensitive details — as with any online translator.
+$("privacyBtn").onclick=()=>sheet(`
+  <h2>Privacy</h2><p>What this app keeps, and what it doesn't.</p>
+  <div class="note info" style="margin-bottom:14px">
+    <b>Never stored:</b> your voice is not recorded or saved anywhere. The conversation on screen lives only in this tab and disappears when you close or clear it.<br><br>
+    <b>Kept on this device only:</b> your chosen languages and voice settings.<br><br>
+    <b>Sent over the internet:</b> the recognised text goes to the translation and voice services so it can be translated and spoken. As with any online translator, avoid saying passwords or card numbers.
   </div>
-  <button class="close" data-close>Close</button>
-`);
+  <button class="close" data-close>Close</button>`);
 </script>
 </body>
 </html>
