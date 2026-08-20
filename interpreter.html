@@ -230,11 +230,12 @@
       <button class="btn stop" id="stopBtn" disabled>■ Stop</button>
     </div>
     <div class="more">
+      <button class="lnk" id="testBtn">🔊 Test voice</button>
       <button class="lnk" id="settingsBtn">⚙︎ Settings</button>
       <button class="lnk" id="clearBtn">🗑 Clear</button>
       <button class="lnk" id="privacyBtn">🔒 Privacy</button>
     </div>
-    <div class="ver">v2.2 · live interpreter</div>
+    <div class="ver">v2.3 · live interpreter</div>
   </footer>
 
   <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
@@ -317,14 +318,24 @@ const Translator=(()=>{
 /* ---------------------------- Voice service ---------------------------- */
 const Voice=(()=>{
   let current=null, primed=false;
+  const SILENT="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+  /* Mobile browsers only allow audio that a tap started. Our speech plays
+     seconds later (after recognition + translation), which mobile blocks.
+     Fix: unlock a small pool of players during the tap, then reuse them.
+     A pool (not one element) avoids the mobile bug where a single reused
+     player goes silent after a few plays. */
+  const nextPlayer=()=>new Audio();   // a fresh element per play is the reliable path
   const stopAudio=()=>{ try{ if(current){ current.onended=null; current.onerror=null;
-    current.pause(); current.src=""; current=null; } }catch(_){} };
+    current.onplaying=null; current.pause(); current=null; } }catch(_){} };
   const prime=()=>{
     if(primed) return; primed=true;
     if("speechSynthesis" in window){
       try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(_){}
     }
-    try{ new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=").play().catch(()=>{}); }catch(_){}
+    try{                                     // grant the page audio permission
+      const a=new Audio(); a.src=SILENT; a.volume=0;
+      const p=a.play(); if(p&&p.catch) p.catch(()=>{});
+    }catch(_){}
   };
   const score=v=>{const n=(v.name||"").toLowerCase();let s=0;
     if(/natural|neural|enhanced|premium|wavenet|siri/.test(n))s+=8;
@@ -338,6 +349,7 @@ const Voice=(()=>{
   if("speechSynthesis" in window){ speechSynthesis.getVoices();
     speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices(); }
 
+  let lastError="";
   const online=(text,code,done)=>{
     let fin=false,wd=null,heard=false;
     const end=()=>{ if(fin)return; fin=true; if(wd)clearTimeout(wd); stopAudio(); done(heard); };
@@ -357,12 +369,24 @@ const Voice=(()=>{
         if(k>=urls.length){ end(); return; }
         stopAudio();
         try{
-          const a=new Audio(); a.src=urls[k++];
-          a.playbackRate=CFG.rate; a.volume=CFG.muted?0:CFG.volume; current=a;
-          a.onplaying=()=>{ heard=true; };        // audio really started
-          a.onended=()=>{ if(i<parts.length) play(parts[i++]); else end(); };
-          a.onerror=attempt;
-          const p=a.play(); if(p&&p.catch)p.catch(attempt);
+          const a=nextPlayer();
+          a.src=urls[k++];
+          a.playbackRate=CFG.rate;
+          a.muted=false;
+          a.volume=CFG.muted?0:(CFG.volume>0?CFG.volume:1);
+          current=a;
+          a.onplaying=()=>{ heard=true; };         // audio really started
+          a.ontimeupdate=()=>{ if(a.currentTime>0.08) heard=true; };  // and really progressed
+          a.onended=()=>{ heard=heard||a.currentTime>0.05;
+            if(i<parts.length) play(parts[i++]); else end(); };
+          a.onerror=()=>{ if(!heard) attempt(); else end(); };
+          const p=a.play();
+          if(p&&p.catch) p.catch(err=>{
+            lastError=(err&&err.name==="NotAllowedError")
+              ? "blocked by browser — tap the screen, then press Test voice"
+              : "audio error";
+            attempt();
+          });
         }catch(_){ attempt(); }
       }; attempt();
     };
@@ -370,7 +394,8 @@ const Voice=(()=>{
   };
 
   return {
-    prime, stop(){ try{ speechSynthesis.cancel(); }catch(_){} stopAudio(); },
+    prime, get lastError(){ return lastError; },
+    stop(){ try{ speechSynthesis.cancel(); }catch(_){} stopAudio(); },
     /** speak() resolves TRUE only when audio actually played, so the
         controller never hands the turn over on silence. */
     speak(text,code){
@@ -568,8 +593,9 @@ const Convo=(()=>{
     const spoke=await Voice.speak(out,to);   // mic stays closed for the whole playback
     if(!running||seq!==seqNo) return;
 
-    if(!spoke){                              // no sound came out — say so, don't move on silently
-      setState(ST.ERROR,"Couldn't play the voice — tap 🔊 on the message to hear it");
+    if(!spoke){                              // no sound came out — say why, don't move on silently
+      const why=Voice.lastError||"no sound";
+      setState(ST.ERROR,"No voice ("+why+") — tap 🔊 on the message");
       el.querySelector(".replay").style.background="#fde68a";
     }
 
@@ -661,6 +687,17 @@ if(!SR){ $("compat").style.display="block";
 else if(!secure){ $("compat").style.display="block";
   $("compat").innerHTML="⚠️ Open this page from an <b>https://</b> address, or the microphone stays blocked."; }
 
+$("testBtn").onclick=async()=>{
+  Voice.prime();                                  // unlock inside this tap
+  const to=CFG.b, name=L(to).n;
+  const samples={ur:"یہ آواز کا ٹیسٹ ہے۔",ar:"هذا اختبار الصوت.",hi:"यह आवाज़ का परीक्षण है।",
+    en:"This is a voice test."};
+  Convo.setState("speaking","Testing the "+name+" voice…");
+  const ok=await Voice.speak(samples[to]||"This is a voice test.",to);
+  Convo.setState(ok?"idle":"error", ok
+    ? "Voice works ✓ — did you hear it? If not, raise your phone volume"
+    : "No voice ("+(Voice.lastError||"no sound")+")");
+};
 $("startBtn").onclick=()=>Convo.start("A");
 $("pauseBtn").onclick=()=>Convo.pause();
 $("stopBtn").onclick=()=>Convo.stop();
