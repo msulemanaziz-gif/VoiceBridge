@@ -37,7 +37,12 @@
   .brand b{font-size:20px;font-weight:800;letter-spacing:.2px;display:block;line-height:1.15}
   .brand span{font-size:11.5px;opacity:.9;font-weight:600}
 
-  .pair{display:flex;align-items:stretch;gap:9px;margin-top:15px;position:relative;z-index:1}
+  .presets{display:flex;gap:6px;margin-top:14px;position:relative;z-index:1}
+  .presets button{flex:1;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.13);
+    color:#fff;border-radius:11px;padding:8px 4px;font-size:11.5px;font-weight:700;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .presets button.on{background:#fff;color:#4338ca;border-color:#fff;font-weight:800}
+  .pair{display:flex;align-items:stretch;gap:9px;margin-top:10px;position:relative;z-index:1}
   .side{flex:1;min-width:0;background:rgba(255,255,255,.14);border-radius:15px;padding:9px 9px 8px;
     border:1px solid rgba(255,255,255,.18)}
   .side .cap{display:flex;align-items:center;gap:6px;margin-bottom:6px}
@@ -177,6 +182,7 @@
       <span class="logo">🎙️</span>
       <div><b>VoiceBridge</b><span>Live interpreter for two people</span></div>
     </div>
+    <div class="presets" id="presets"></div>
     <div class="pair">
       <div class="side A">
         <div class="cap"><span class="av">A</span><span>Speaks</span></div>
@@ -235,7 +241,7 @@
       <button class="lnk" id="clearBtn">🗑 Clear</button>
       <button class="lnk" id="privacyBtn">🔒 Privacy</button>
     </div>
-    <div class="ver">v2.3 · live interpreter</div>
+    <div class="ver">v3.0 · Urdu · English · Arabic</div>
   </footer>
 
   <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
@@ -250,28 +256,11 @@
    ===================================================================== */
 
 const LANGS=[
-  {c:"ur",n:"Urdu",      stt:"ur-PK", rtl:true},
-  {c:"ar",n:"Arabic",    stt:"ar-SA", rtl:true},
-  {c:"en",n:"English",   stt:"en-US"},
-  {c:"es",n:"Spanish",   stt:"es-ES"},
-  {c:"fr",n:"French",    stt:"fr-FR"},
-  {c:"de",n:"German",    stt:"de-DE"},
-  {c:"it",n:"Italian",   stt:"it-IT"},
-  {c:"pt",n:"Portuguese",stt:"pt-PT"},
-  {c:"nl",n:"Dutch",     stt:"nl-NL"},
-  {c:"ru",n:"Russian",   stt:"ru-RU"},
-  {c:"hi",n:"Hindi",     stt:"hi-IN"},
-  {c:"bn",n:"Bengali",   stt:"bn-BD"},
-  {c:"zh",n:"Chinese",   stt:"zh-CN"},
-  {c:"ja",n:"Japanese",  stt:"ja-JP"},
-  {c:"ko",n:"Korean",    stt:"ko-KR"},
-  {c:"tr",n:"Turkish",   stt:"tr-TR"},
-  {c:"id",n:"Indonesian",stt:"id-ID"},
-  {c:"pl",n:"Polish",    stt:"pl-PL"},
-  {c:"uk",n:"Ukrainian", stt:"uk-UA"},
-  {c:"vi",n:"Vietnamese",stt:"vi-VN"},
-  {c:"th",n:"Thai",      stt:"th-TH"},
+  {c:"ur",n:"Urdu",    stt:"ur-PK", rtl:true},
+  {c:"ar",n:"Arabic",  stt:"ar-SA", rtl:true},
+  {c:"en",n:"English", stt:"en-US"},
 ];
+const PAIRS=[["ur","ar"],["ur","en"],["en","ar"]];   // quick presets
 const L=c=>LANGS.find(x=>x.c===c)||LANGS[0];
 const $=id=>document.getElementById(id);
 
@@ -279,6 +268,11 @@ const CFG={a:"ur",b:"ar",auto:true,rate:1,volume:1,muted:false,minChars:2,switch
 try{ Object.assign(CFG,JSON.parse(localStorage.getItem("vb_cfg")||"{}")); }catch(_){}
 // older builds saved a very short hand-over gap; bring those up to the new default
 if(!CFG.switchMs||CFG.switchMs<500) CFG.switchMs=3000;
+// a previously saved language may no longer be offered — fall back to the defaults
+const HAS=c=>LANGS.some(l=>l.c===c);
+if(!HAS(CFG.a)) CFG.a="ur";
+if(!HAS(CFG.b)) CFG.b="ar";
+if(CFG.a===CFG.b) CFG.b = CFG.a==="ur" ? "ar" : "ur";
 const saveCfg=()=>{ try{ localStorage.setItem("vb_cfg",JSON.stringify(CFG)); }catch(_){} };
 
 /* ------------------------- Translation service ------------------------- */
@@ -645,7 +639,17 @@ const Convo=(()=>{
 const UI=(()=>{
   const opts=cur=>LANGS.map(l=>`<option value="${l.c}" ${l.c===cur?"selected":""}>${l.n}</option>`).join("");
   function fill(){ $("selA").innerHTML=opts(CFG.a); $("selB").innerHTML=opts(CFG.b); }
-  function labels(){ $("nameA").textContent=L(CFG.a).n; $("nameB").textContent=L(CFG.b).n; }
+  function presets(){
+    $("presets").innerHTML=PAIRS.map(([x,y],i)=>
+      `<button data-i="${i}">${L(x).n} ⇄ ${L(y).n}</button>`).join("");
+    $("presets").querySelectorAll("button").forEach(b=>{
+      const [x,y]=PAIRS[+b.dataset.i];
+      if((CFG.a===x&&CFG.b===y)||(CFG.a===y&&CFG.b===x)) b.classList.add("on");
+      b.onclick=()=>{ CFG.a=x; CFG.b=y; saveCfg();
+        $("selA").value=x; $("selB").value=y; labels(); presets(); Convo.stop(); };
+    });
+  }
+  function labels(){ $("nameA").textContent=L(CFG.a).n; $("nameB").textContent=L(CFG.b).n; presets(); }
   function addTurn(which,said,out,outLang){
     $("welcome").style.display="none";
     const inLang=which==="A"?CFG.a:CFG.b;
@@ -676,7 +680,7 @@ const UI=(()=>{
     el.querySelector(".arrow span").textContent=L(lang).n;
     el.dataset.lang=lang; scroll(); };
   const remove=el=>{ try{ el.remove(); }catch(_){} };
-  return {fill,labels,addTurn,setSaid,finish,remove};
+  return {fill,labels,presets,addTurn,setSaid,finish,remove};
 })();
 
 /* -------------------------------- wiring -------------------------------- */
@@ -708,8 +712,12 @@ $("clearBtn").onclick=()=>{
   $("welcome").style.display="block";
   if(!Convo.running) Convo.setState("idle","Cleared — press Start conversation");
 };
-$("selA").onchange=e=>{ CFG.a=e.target.value; saveCfg(); UI.labels(); Convo.stop(); };
-$("selB").onchange=e=>{ CFG.b=e.target.value; saveCfg(); UI.labels(); Convo.stop(); };
+$("selA").onchange=e=>{ CFG.a=e.target.value;
+  if(CFG.b===CFG.a){ CFG.b=LANGS.find(l=>l.c!==CFG.a).c; $("selB").value=CFG.b; }
+  saveCfg(); UI.labels(); Convo.stop(); };
+$("selB").onchange=e=>{ CFG.b=e.target.value;
+  if(CFG.a===CFG.b){ CFG.a=LANGS.find(l=>l.c!==CFG.b).c; $("selA").value=CFG.a; }
+  saveCfg(); UI.labels(); Convo.stop(); };
 $("swap").onclick=()=>{ const t=CFG.a; CFG.a=CFG.b; CFG.b=t;
   $("selA").value=CFG.a; $("selB").value=CFG.b; saveCfg(); UI.labels(); Convo.stop(); };
 
