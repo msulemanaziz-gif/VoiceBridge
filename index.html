@@ -182,7 +182,6 @@
       <span class="logo">🎙️</span>
       <div><b>VoiceBridge</b><span>Live interpreter for two people</span></div>
     </div>
-    <div class="presets" id="presets"></div>
     <div class="pair">
       <div class="side A">
         <div class="cap"><span class="av">A</span><span>Speaks</span></div>
@@ -242,7 +241,7 @@
       <button class="lnk" id="clearBtn">🗑 Clear</button>
       <button class="lnk" id="privacyBtn">🔒 Privacy</button>
     </div>
-    <div class="ver">v3.1 · Urdu · English · Arabic</div>
+    <div class="ver">v4.0 · Urdu ⇄ English</div>
   </footer>
 
   <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
@@ -258,22 +257,20 @@
 
 const LANGS=[
   {c:"ur",n:"Urdu",    stt:"ur-PK", rtl:true},
-  {c:"ar",n:"Arabic",  stt:"ar-SA", rtl:true},
   {c:"en",n:"English", stt:"en-US"},
 ];
-const PAIRS=[["ur","ar"],["ur","en"],["en","ar"]];   // quick presets
 const L=c=>LANGS.find(x=>x.c===c)||LANGS[0];
 const $=id=>document.getElementById(id);
 
-const CFG={a:"ur",b:"ar",auto:true,rate:1,volume:1,muted:false,minChars:2,switchMs:3000};
+const CFG={a:"ur",b:"en",auto:true,rate:1,volume:1,muted:false,minChars:2,switchMs:3000};
 try{ Object.assign(CFG,JSON.parse(localStorage.getItem("vb_cfg")||"{}")); }catch(_){}
 // older builds saved a very short hand-over gap; bring those up to the new default
 if(!CFG.switchMs||CFG.switchMs<500) CFG.switchMs=3000;
 // a previously saved language may no longer be offered — fall back to the defaults
 const HAS=c=>LANGS.some(l=>l.c===c);
 if(!HAS(CFG.a)) CFG.a="ur";
-if(!HAS(CFG.b)) CFG.b="ar";
-if(CFG.a===CFG.b) CFG.b = CFG.a==="ur" ? "ar" : "ur";
+if(!HAS(CFG.b)) CFG.b="en";
+if(CFG.a===CFG.b) CFG.b = CFG.a==="ur" ? "en" : "ur";
 const saveCfg=()=>{ try{ localStorage.setItem("vb_cfg",JSON.stringify(CFG)); }catch(_){} };
 
 /* ------------------------- Translation service ------------------------- */
@@ -642,17 +639,8 @@ const Convo=(()=>{
 const UI=(()=>{
   const opts=cur=>LANGS.map(l=>`<option value="${l.c}" ${l.c===cur?"selected":""}>${l.n}</option>`).join("");
   function fill(){ $("selA").innerHTML=opts(CFG.a); $("selB").innerHTML=opts(CFG.b); }
-  function presets(){
-    $("presets").innerHTML=PAIRS.map(([x,y],i)=>
-      `<button data-i="${i}">${L(x).n} ⇄ ${L(y).n}</button>`).join("");
-    $("presets").querySelectorAll("button").forEach(b=>{
-      const [x,y]=PAIRS[+b.dataset.i];
-      if((CFG.a===x&&CFG.b===y)||(CFG.a===y&&CFG.b===x)) b.classList.add("on");
-      b.onclick=()=>{ CFG.a=x; CFG.b=y; saveCfg();
-        $("selA").value=x; $("selB").value=y; labels(); presets(); Convo.stop(); };
-    });
-  }
-  function labels(){ $("nameA").textContent=L(CFG.a).n; $("nameB").textContent=L(CFG.b).n; presets();
+  function presets(){}
+  function labels(){ $("nameA").textContent=L(CFG.a).n; $("nameB").textContent=L(CFG.b).n;
     if(typeof checkVoices==="function") checkVoices(); }
   function addTurn(which,said,out,outLang){
     $("welcome").style.display="none";
@@ -720,8 +708,7 @@ function checkVoices(){
 $("testBtn").onclick=async()=>{
   Voice.prime();                                  // unlock inside this tap
   const to=CFG.b, name=L(to).n;
-  const samples={ur:"یہ آواز کا ٹیسٹ ہے۔",ar:"هذا اختبار الصوت.",hi:"यह आवाज़ का परीक्षण है।",
-    en:"This is a voice test."};
+  const samples={ur:"یہ آواز کا ٹیسٹ ہے۔",en:"This is a voice test."};
   Convo.setState("speaking","Testing the "+name+" voice…");
   const ok=await Voice.speak(samples[to]||"This is a voice test.",to);
   const vn=Voice.voiceName(to);
