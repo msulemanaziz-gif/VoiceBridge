@@ -204,6 +204,7 @@
 
   <main id="convo">
     <div class="note warn" id="compat" style="display:none"></div>
+    <div class="note warn" id="voiceWarn" style="display:none"></div>
     <div class="welcome" id="welcome">
       <div class="ico">💬</div>
       <h3>Talk naturally, in two languages</h3>
@@ -241,7 +242,7 @@
       <button class="lnk" id="clearBtn">🗑 Clear</button>
       <button class="lnk" id="privacyBtn">🔒 Privacy</button>
     </div>
-    <div class="ver">v3.0 · Urdu · English · Arabic</div>
+    <div class="ver">v3.1 · Urdu · English · Arabic</div>
   </footer>
 
   <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
@@ -340,6 +341,7 @@ const Voice=(()=>{
     if(!vs.length) return null;
     vs.sort((x,y)=>score(y)-score(x)); return vs[0];
   };
+  const listAll=()=>("speechSynthesis" in window)?speechSynthesis.getVoices():[];
   if("speechSynthesis" in window){ speechSynthesis.getVoices();
     speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices(); }
 
@@ -389,6 +391,7 @@ const Voice=(()=>{
 
   return {
     prime, get lastError(){ return lastError; },
+    has:code=>!!pick(code), voiceName:code=>{const v=pick(code);return v?v.name:null;}, listAll,
     stop(){ try{ speechSynthesis.cancel(); }catch(_){} stopAudio(); },
     /** speak() resolves TRUE only when audio actually played, so the
         controller never hands the turn over on silence. */
@@ -649,7 +652,8 @@ const UI=(()=>{
         $("selA").value=x; $("selB").value=y; labels(); presets(); Convo.stop(); };
     });
   }
-  function labels(){ $("nameA").textContent=L(CFG.a).n; $("nameB").textContent=L(CFG.b).n; presets(); }
+  function labels(){ $("nameA").textContent=L(CFG.a).n; $("nameB").textContent=L(CFG.b).n; presets();
+    if(typeof checkVoices==="function") checkVoices(); }
   function addTurn(which,said,out,outLang){
     $("welcome").style.display="none";
     const inLang=which==="A"?CFG.a:CFG.b;
@@ -685,11 +689,33 @@ const UI=(()=>{
 
 /* -------------------------------- wiring -------------------------------- */
 UI.fill(); UI.labels(); Convo.armUI();
+if("speechSynthesis" in window){
+  setTimeout(checkVoices,400);                      // voices load asynchronously
+  speechSynthesis.addEventListener("voiceschanged",()=>setTimeout(checkVoices,100));
+}
 const secure=window.isSecureContext||location.protocol==="https:"||location.hostname==="localhost";
 if(!SR){ $("compat").style.display="block";
   $("compat").innerHTML="⚠️ <b>Voice needs Chrome or Edge</b> (Android or computer). iPhone browsers don't support voice input."; }
 else if(!secure){ $("compat").style.display="block";
   $("compat").innerHTML="⚠️ Open this page from an <b>https://</b> address, or the microphone stays blocked."; }
+
+/* Warn early if this device has no voice for a chosen language, and say how to add it. */
+function checkVoices(){
+  if(!("speechSynthesis" in window)) return;
+  const missing=[CFG.a,CFG.b].filter(c=>!Voice.has(c)).map(c=>L(c).n);
+  const box=$("voiceWarn");
+  if(!missing.length){ box.style.display="none"; return; }
+  const isAndroid=/Android/i.test(navigator.userAgent);
+  const isWin=/Windows/i.test(navigator.userAgent);
+  const how = isAndroid
+    ? "On Android: <b>Settings → General management → Text-to-speech</b> (or <b>Settings → Accessibility → Text-to-speech</b>) → tap the gear beside <b>Google Text-to-speech</b> → <b>Install voice data</b> → choose <b>"+missing[0]+"</b>."
+    : isWin
+    ? "On Windows: <b>Settings → Time &amp; language → Language &amp; region</b> → add <b>"+missing[0]+"</b> → open its <b>Language options</b> and install <b>Speech</b>."
+    : "Install the <b>"+missing[0]+"</b> text-to-speech voice in your device's language or accessibility settings.";
+  box.style.display="block";
+  box.innerHTML="🔇 <b>No "+missing.join(" or ")+" voice on this device</b>, so those translations will show as text but stay silent.<br><br>"+how+
+    "<br><br>Then reload this page. Everything else works normally meanwhile.";
+}
 
 $("testBtn").onclick=async()=>{
   Voice.prime();                                  // unlock inside this tap
@@ -698,9 +724,11 @@ $("testBtn").onclick=async()=>{
     en:"This is a voice test."};
   Convo.setState("speaking","Testing the "+name+" voice…");
   const ok=await Voice.speak(samples[to]||"This is a voice test.",to);
+  const vn=Voice.voiceName(to);
   Convo.setState(ok?"idle":"error", ok
-    ? "Voice works ✓ — did you hear it? If not, raise your phone volume"
-    : "No voice ("+(Voice.lastError||"no sound")+")");
+    ? "Voice works ✓ ("+(vn||"online")+") — if you heard nothing, raise the volume"
+    : "No "+name+" voice on this device — see the note above");
+  checkVoices();
 };
 $("startBtn").onclick=()=>Convo.start("A");
 $("pauseBtn").onclick=()=>Convo.pause();
@@ -738,7 +766,17 @@ $("settingsBtn").onclick=()=>sheet(`
   <div class="rowc"><span>Volume</span><input type="range" id="vol" min="0" max="1" step="0.05" value="${CFG.volume}"><span class="val" id="volV">${Math.round(CFG.volume*100)}%</span></div>
   <div class="rowc"><span>Mute voice</span><input type="checkbox" id="mute" ${CFG.muted?"checked":""} style="width:20px;height:20px;accent-color:var(--a1)"></div>
   <div class="rowc"><span>Wait after speaking<br><span style="font-weight:600;font-size:11.5px;color:var(--muted)">before the other mic opens</span></span><input type="range" id="sw" min="500" max="6000" step="500" value="${CFG.switchMs}"><span class="val" id="swV">${(CFG.switchMs/1000).toFixed(1)}s</span></div>
+  <div style="border-top:1px solid var(--line);margin:4px 0 12px;padding-top:12px">
+    <div style="font-size:12.5px;font-weight:800;margin-bottom:6px">Voices on this device</div>
+    <div id="voiceList" style="font-size:11.5px;color:var(--muted);line-height:1.6;max-height:110px;overflow:auto"></div>
+  </div>
   <button class="close" data-close>Done</button>`,()=>{
+  const vs=Voice.listAll();
+  $("voiceList").innerHTML = vs.length
+    ? [CFG.a,CFG.b].map(c=>{ const v=Voice.voiceName(c);
+        return (v?"✅ ":"❌ ")+L(c).n+": "+(v||"none installed"); }).join("<br>")
+      +"<br><span style='opacity:.7'>"+vs.length+" voices total on this device</span>"
+    : "No voices reported by this browser.";
   $("segAuto").onclick=()=>{CFG.auto=true;saveCfg();$("segAuto").classList.add("on");$("segMan").classList.remove("on");};
   $("segMan").onclick=()=>{CFG.auto=false;saveCfg();$("segMan").classList.add("on");$("segAuto").classList.remove("on");};
   $("rate").oninput=e=>{CFG.rate=parseFloat(e.target.value);$("rateV").textContent=CFG.rate.toFixed(2)+"×";saveCfg();};
